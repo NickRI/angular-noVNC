@@ -1,5 +1,5 @@
 {
-  "name": "angular-noVNC",
+  "name": "angular-no-vnc",
   "version": "0.0.1",
   "description": "noVNC port for angular.js",
   "main": "Gulpfile.js",
@@ -21,7 +21,6 @@
   "license": "MPL 2.0",
   "dependencies": {
     "ws": ">=0.4.27",
-    "base64": "latest",
     "optimist": "latest",
     "policyfile": "latest"
   },
