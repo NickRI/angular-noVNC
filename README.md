@@ -40,7 +40,7 @@ Others server-side moments you might found [here](https://github.com/kanaka/noVN
 
 * Add library to your html file and __noVNC__ to your module dependency. `var app = angular.module('myApp', ['noVNC']);`
 
-* Add directive `<vnc host="localhost" port="44999" is-connected="true" />`
+* Add directive `<vnc host="localhost" port="44999" is-connected="true"></vnc>`
 
 * Reload page =)
 
