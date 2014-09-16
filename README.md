@@ -70,7 +70,7 @@ Yes, they are should be in. This port is goes with code changes of big one (noVN
 ## Nearby changes
 
 * Add loadable flash ws:// support.
-* Add mobile mode and browsers support.
+* Add mobile mode support.
 * Add clipboard transfer.
 * Write tests.
 * Add encription support.
