@@ -4,7 +4,7 @@ Port of __[Joel Martin's](https://github.com/kanaka)__ [noVNC](https://github.co
 
 ## Install
 
-`$ bower install angular-noVNC`
+`$ bower install angular-no-vnc`
 
 ## Overview
 
