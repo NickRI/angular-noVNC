@@ -16,7 +16,8 @@
   "bin": {
     "websockify": "./websockify/websockify.js"
   },
-  "author": "Nick Roshin",
+  "author": "Nick Roshin <deneb808@gmail.com>",
+  "homepage": "https://github.com/rootStar-lock/angular-noVNC",
   "license": "MPL 2.0",
   "dependencies": {
     "ws": ">=0.4.27",
