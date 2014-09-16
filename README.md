@@ -29,7 +29,7 @@ $ x11vnc -display :0 -N -forever &
 To run the websockify install angular-noVNC globally via npm:
 
 ```bash
-$ npm install -g angular-noVNC #add websockify command
+$ npm install -g angular-no-vnc #add websockify command
 $ websockify 44999 localhost:5900
 ```
 
