@@ -1,0 +1,37 @@
+{
+  "name": "angular-noVNC",
+  "version": "0.0.1",
+  "description": "noVNC port for angular.js",
+  "main": "Gulpfile.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "angular",
+    "angular.js",
+    "noVNC",
+    "vnc",
+    "RDP"
+  ],
+  "bin": {
+    "websockify": "./websockify/websockify.js"
+  },
+  "author": "Nick Roshin",
+  "license": "MPL 2.0",
+  "dependencies": {
+    "ws": ">=0.4.27",
+    "base64": "latest",
+    "optimist": "latest",
+    "policyfile": "latest"
+  },
+  "devDependencies": {
+    "gulp": "^3.8.8",
+    "gulp-concat": "^2.4.0",
+    "gulp-jshint": "^1.8.4",
+    "gulp-livereload": "^2.1.1",
+    "gulp-plato": "^1.0.1",
+    "gulp-uglify": "^1.0.1",
+    "gulp-webserver": "^0.8.0",
+    "jshint-stylish": "^0.4.0"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "name": "angular-noVNC",
+  "version": "0.0.1",
+  "authors": [
+    "Nick Roshin <denebb808@gmail.com>"
+  ],
+  "description": "noVNC port for angular.js",
+  "main": "dist/angular-no-vnc.js",
+  "keywords": [
+    "angular",
+    "angular.js",
+    "noVNC",
+    "vnc",
+    "RDP"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests",
+    "lib",
+    "plato",
+    "websockify",
+    "gulpfile.js",
+    "package.json"
+  ],
+  "devDependencies": {
+    "angular": "~1.2.24",
+    "bootstrap": "~3.2.0"
+  }
+}
