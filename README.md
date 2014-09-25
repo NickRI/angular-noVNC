@@ -2,6 +2,11 @@
 
 Port of __[Joel Martin's](https://github.com/kanaka)__ [noVNC](https://github.com/kanaka/noVNC) project for __angularjs__.
 
+### Sample app
+![](https://github.com/rootStar-lock/angular-noVNC/blob/master/screens/avnc-a.png)
+### Fullscreen mode
+![](https://github.com/rootStar-lock/angular-noVNC/blob/master/screens/avnc-full-screen.png)
+
 ## Install
 
 `$ bower install angular-no-vnc`
