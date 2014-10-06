@@ -39,7 +39,7 @@ $ websockify 44999 localhost:5900
 ```
 
 _Additional info of usage websockify is [here](https://github.com/kanaka/websockify/wiki).
-Others server-side moments you might found [here](https://github.com/kanaka/noVNC/wiki)._
+Others server-side features you might found [here](https://github.com/kanaka/noVNC/wiki)._
 
 ### Open connection via browser (_client-side_)
 
