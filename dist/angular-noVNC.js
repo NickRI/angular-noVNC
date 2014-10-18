@@ -7187,6 +7187,12 @@ angular.module('noVNC', ['noVNC.util', 'noVNC.rfb']).directive('vnc', ['WebUtil'
 				}
 			});
 
+			scope.$on('$destroy', function() {
+				if (scope.isConnected) {
+					Interface.disconnect();
+				}
+			});
+
 			Interface.load();
 		}
 	};
