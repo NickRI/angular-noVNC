@@ -93,9 +93,9 @@ Yes, they are should be in. This port is goes with code changes of big one (noVN
 
 All improvements need free time. Your stars and issues increase my interest to work with project =)
 
-## Development
+## Contribution
 
-* Get latest version `git clone https://github.com/rootStar-lock/angular-noVNC.git`
+* Fork.
 * Install npm and bower dependencies. `npm install && bower install`.
 * Project under __gulp__ build system. Run `gulp --tasks` to see whats we have.
 * Live sample in _index.html_
