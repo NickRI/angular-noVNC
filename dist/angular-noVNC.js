@@ -6966,7 +6966,7 @@ angular.module('noVNC', ['noVNC.util', 'noVNC.rfb']).directive('vnc', ['WebUtil'
 			host        : '@',
 			port        : '@',
 			password    : '@',
-			path		: '@',
+			path				: '@',
 			viewOnly    : '=',
 			trueColor   : '=',
 			isConnected : '=',
