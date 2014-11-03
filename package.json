@@ -1,6 +1,6 @@
 {
   "name": "angular-no-vnc",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "noVNC port for angular.js",
   "main": "Gulpfile.js",
   "scripts": {
@@ -11,6 +11,8 @@
     "angular.js",
     "noVNC",
     "vnc",
+    "tightVNC",
+    "KVM",
     "RDP"
   ],
   "bin": {
