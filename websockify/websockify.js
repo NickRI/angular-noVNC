@@ -22,7 +22,7 @@ var argv = require('optimist').argv,
     WebSocketServer = require('ws').Server,
 
     webServer, wsServer,
-    source_host, source_port, target_host, target_port,
+    source_host, source_port, target_host, target_port, ws_path,
     web_path = null;
 
 
@@ -100,8 +100,8 @@ http_request = function (request, response) {
     }
 
     var uri = url.parse(request.url).pathname
-        , filename = path.join(argv.web, uri);
-    
+        , filename = path.resolve(__dirname, argv.web, '.'+uri);
+
     fs.exists(filename, function(exists) {
         if(!exists) {
             return http_error(response, 404, "404 Not Found");
@@ -161,7 +161,7 @@ try {
         throw("illegal port");
     }
 } catch(e) {
-    console.error("websockify.js [--web web_dir] [--cert cert.pem [--key key.pem]] [source_addr:]source_port target_addr:target_port");
+    console.error("websockify.js [--web web_dir] [--path ws path] [--cert cert.pem [--key key.pem]] [source_addr:]source_port target_addr:target_port");
     process.exit(2);
 }
 
@@ -182,8 +182,17 @@ if (argv.cert) {
     console.log("    - Running in unencrypted HTTP (ws://) mode");
     webServer = http.createServer(http_request);
 }
+
+if (argv.path) {
+  ws_path = argv.path[0] === "/" ? argv.path : "/"+argv.path;
+} else {
+  ws_path = "/websockify"
+}
+
+console.log("    - Listening path: " + ws_path);
+
 webServer.listen(source_port, function() {
-    wsServer = new WebSocketServer({server: webServer,
+    wsServer = new WebSocketServer({server: webServer, path: ws_path,
                                     handleProtocols: selectProtocol});
     wsServer.on('connection', new_client);
 });
