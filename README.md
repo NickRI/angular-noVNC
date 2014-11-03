@@ -56,6 +56,7 @@ Others server-side features you might found [here](https://github.com/kanaka/noV
 | __host__               | IP/name of host to connect.                                   | @          | _window.location.hostname_                   |
 | __port__               | Port of websockify port.                                      | @          | _window.location.port_ or 80\http, 443\https |
 | __password__           | Connection password.                                          | @          | ''                                           |
+| __path__           	 | Connection path                                               | @          | 'websockify'                                 |
 | __true-color__         | True color representation.                                    | =          | true                                         |
 | __view-only__          | Disable keyboard and mouse events.                            | =          | false                                        |
 | __is-connected__       | Connection switcher.                                          | =          | false                                        |

@@ -6966,6 +6966,7 @@ angular.module('noVNC', ['noVNC.util', 'noVNC.rfb']).directive('vnc', ['WebUtil'
 			host        : '@',
 			port        : '@',
 			password    : '@',
+			path		: '@',
 			viewOnly    : '=',
 			trueColor   : '=',
 			isConnected : '=',
@@ -6996,6 +6997,13 @@ angular.module('noVNC', ['noVNC.util', 'noVNC.rfb']).directive('vnc', ['WebUtil'
 
 			scope.$watch('password', function(password) {
 				Interface.setSetting('password', password);
+				if (Interface.connected) {
+					Interface.reconect();
+				}
+			});
+
+			scope.$watch('path', function(path) {
+				Interface.setSetting('path', path);
 				if (Interface.connected) {
 					Interface.reconect();
 				}
