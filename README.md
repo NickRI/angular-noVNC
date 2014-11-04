@@ -35,22 +35,19 @@ To run the websockify install angular-noVNC globally via npm:
 
 ```bash
 $ npm install -g angular-no-vnc #add websockify command
-$ websockify 44999 localhost:5900
+$ websockify --web=.. 44999 localhost:5900
 ```
 
-Or you can run websocket proxy server with `--web=..` option for use sample app in index.html
+`--web=..` will allow you to use sample app in ../index.html for fast check by [http://localhost:44999](http://localhost:44999)
 
-```bash
-$ node websockify/websockify.js --web=.. 44999 localhost:5900 #rememeber you might install all bower components to correct work and view.
-```
-Now open [localhost:44999](http://localhost:44999) in your browser to check established connection.
-
-__if you using another ws path run `websockify --path your_path 44999 localhost:5900`__
+__Note that websockify listens on /websockify path by default. If you want to use another ws path please run `websockify --path your_path 44999 localhost:5900`__
 
 _Additional info of usage websockify is [here](https://github.com/kanaka/websockify/wiki).
 Others server-side features you might found [here](https://github.com/kanaka/noVNC/wiki)._
 
-### Open connection via browser (_client-side_)
+### Use in your application (_client-side_)
+
+After running websockify, or other ws:// proxy server:
 
 * Add library to your html file and __noVNC__ to your module dependency. `var app = angular.module('myApp', ['noVNC']);`
 
@@ -65,7 +62,7 @@ Others server-side features you might found [here](https://github.com/kanaka/noV
 | __host__               | IP/name of host to connect.                                   | @          | _window.location.hostname_                   |
 | __port__               | Port of websockify port.                                      | @          | _window.location.port_ or 80\http, 443\https |
 | __password__           | Connection password.                                          | @          | ''                                           |
-| __path__           	   | Connection path                                               | @          | 'websockify'                                 |
+| __path__           	   | Connection path                                               | @          | ''                                 |
 | __true-color__         | True color representation.                                    | =          | true                                         |
 | __view-only__          | Disable keyboard and mouse events.                            | =          | false                                        |
 | __is-connected__       | Connection switcher.                                          | =          | false                                        |
@@ -95,9 +92,10 @@ All improvements need free time. Your stars and issues increase my interest to w
 
 ## Contribution
 
-* Fork.
-* Install npm and bower dependencies. `npm install && bower install`.
-* Project under __gulp__ build system. Run `gulp --tasks` to see whats we have.
-* Live sample in _index.html_
+* Fork `$ git clone git@github.com:rootStar-lock/angular-noVNC.git`.
+* Navigate and install npm and bower dependencies. `$ cd angular-noVNC && npm install`.
+* Project driven by __gulp__ build system. Run `gulp --tasks` to see whats we have.
+* Live sample app in _index.html_
+* Use `gulp lint` and `gulp plato` to check code complexity and common mistakes.
 
 Forks and pulls will be accepted with love)
