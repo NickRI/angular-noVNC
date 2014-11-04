@@ -1,0 +1,2108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Plato - rfb.js</title>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="">
+  <meta name="author" content="">
+
+  <!--[if lt IE 9]>
+  <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+
+  <link href="../../assets/css/vendor/morris.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/bootstrap.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/font-awesome.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/codemirror.css" rel="stylesheet">
+  <link href="../../assets/css/plato.css" rel="stylesheet">
+  <link href="../../assets/css/plato-file.css" rel="stylesheet">
+
+</head>
+
+<body>
+
+<div class="navbar navbar-fixed-top">
+  <div class="container">
+    <a class="navbar-brand" href="http://github.com/es-analysis/plato">Plato on Github</a>
+    <ul class="nav navbar-nav">
+      <li>
+        <a href="../../index.html">Report Home</a>
+      </li>
+    </ul>
+  </div>
+</div>
+
+<div class="jumbotron">
+  <div class="container">
+    <h1>rfb.js</h1>
+  </div>
+</div>
+
+<div class="container aggregate-stats">
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Maintainability <a href="http://blogs.msdn.com/b/codeanalysis/archive/2007/11/20/maintainability-index-range-and-meaning.aspx"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="A value between 0 and 100 that represents the relative ease of maintaining the code. A high value means better maintainability." data-original-title="Maintainability Index"  data-container="body"></i></a></h2>
+      <p class="stat">53.01</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Lines of code <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h2>
+      <p class="stat">1978</p>
+    </div>
+  </div>
+  <div class="row historical">
+    <div class="col-md-6">
+      <p id="chart_historical_maint" class="chart"></p>
+    </div>
+    <div class="col-md-6">
+      <p id="chart_historical_sloc" class="chart"></p>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Difficulty  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="The difficulty measure is related to the difficulty of the program to write or understand." data-original-title="Difficulty" data-container="body"></i></a></h2>
+      <p class="stat">129.54</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Estimated Errors  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Halstead's delivered bugs is an estimate for the number of errors in the implementation." data-original-title="Delivered Bugs" data-container="body"></i></a></h2>
+      <p class="stat">22.53</p>
+    </div>
+  </div>
+</div>
+
+<div class="container charts">
+  <div class="row">
+    <h2 class="header">Function weight</h2>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h3 class="chart-header">By Complexity <a href="http://en.wikipedia.org/wiki/Cyclomatic_complexity"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="This metric counts the number of distinct paths through a block of code. Lower values are better." data-original-title="Cyclomatic Complexity" data-container="body"></i></a></h3>
+      <div id="fn-by-complexity" class="stat"></div>
+    </div>
+    <div class="col-md-6">
+      <h3 class="chart-header">By SLOC  <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h3>
+      <div id="fn-by-sloc" class="stat"></div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="row">
+    <textarea id="file-source" class="col-md-12">/*
+ * noVNC: HTML5 VNC client
+ * Copyright (C) 2012 Joel Martin
+ * Copyright (C) 2013 Samuel Mannehed for Cendio AB
+ * Licensed under MPL 2.0 (see LICENSE.txt)
+ *
+ * See README.md for usage and integration instructions.
+ *
+ * TIGHT decoder portion:
+ * (c) 2012 Michael Tinglof, Joe Balaz, Les Piech (Mercuri.ca)
+ */
+
+
+angular.module(&#039;noVNC.rfb&#039;, [&#039;noVNC.input&#039;, &#039;noVNC.display&#039;, &#039;noVNC.jsunzip&#039;])
+.factory(&#039;RFB&#039;, [&#039;Util&#039;, &#039;Display&#039;, &#039;Base64&#039;, &#039;Keyboard&#039;, &#039;Mouse&#039;, &#039;Websock&#039;, &#039;TINF&#039;, &#039;DES&#039;,
+	function(Util, Display, Base64, Keyboard, Mouse, Websock, TINF, DES) {
+		&#039;use strict&#039;;
+
+		return function(defaults) {
+				var that = {},  // Public API methods
+				conf     = {},  // Configuration attributes
+
+				// Pre-declare private functions used before definitions (jslint)
+				init_vars, updateState, fail, handle_message,
+				init_msg, normal_msg, framebufferUpdate, print_stats,
+
+				pixelFormat, clientEncodings, fbUpdateRequest, fbUpdateRequests,
+				keyEvent, pointerEvent, clientCutText,
+
+				getTightCLength, extract_data_uri,
+				keyPress, mouseButton, mouseMove,
+
+				checkEvents,  // Overridable for testing
+
+
+				//
+				// Private RFB namespace variables
+				//
+				rfb_host       = &#039;&#039;,
+				rfb_port       = 5900,
+				rfb_password   = &#039;&#039;,
+				rfb_path       = &#039;&#039;,
+
+				rfb_state      = &#039;disconnected&#039;,
+				rfb_version    = 0,
+				rfb_max_version= 3.8,
+				rfb_auth_scheme= &#039;&#039;,
+				rfb_tightvnc   = false,
+
+				rfb_xvp_ver    = 0,
+
+
+				// In preference order
+				encodings      = [
+					[&#039;COPYRECT&#039;,         0x01 ],
+					[&#039;TIGHT&#039;,            0x07 ],
+					[&#039;TIGHT_PNG&#039;,        -260 ],
+					[&#039;HEXTILE&#039;,          0x05 ],
+					[&#039;RRE&#039;,              0x02 ],
+					[&#039;RAW&#039;,              0x00 ],
+					[&#039;DesktopSize&#039;,      -223 ],
+					[&#039;Cursor&#039;,           -239 ],
+
+					// Psuedo-encoding settings
+					//[&#039;JPEG_quality_lo&#039;,   -32 ],
+					[&#039;JPEG_quality_med&#039;,    -26 ],
+					//[&#039;JPEG_quality_hi&#039;,   -23 ],
+					//[&#039;compress_lo&#039;,      -255 ],
+					[&#039;compress_hi&#039;,        -247 ],
+					[&#039;last_rect&#039;,          -224 ],
+					[&#039;xvp&#039;,                -309 ]
+					],
+
+				encHandlers    = {},
+				encNames       = {},
+				encStats       = {},     // [rectCnt, rectCntTot]
+
+				ws             = null,   // Websock object
+				display        = null,   // Display object
+				keyboard       = null,   // Keyboard input handler object
+				mouse          = null,   // Mouse input handler object
+				sendTimer      = null,   // Send Queue check timer
+				disconnTimer   = null,   // disconnection timer
+				msgTimer       = null,   // queued handle_message timer
+
+				// Frame buffer update state
+				FBU            = {
+					rects          : 0,
+					subrects       : 0,  // RRE
+					lines          : 0,  // RAW
+					tiles          : 0,  // HEXTILE
+					bytes          : 0,
+					x              : 0,
+					y              : 0,
+					width          : 0,
+					height         : 0,
+					encoding       : 0,
+					subencoding    : -1,
+					background     : null,
+					zlibs          : []   // TIGHT zlib streams
+				},
+
+				fb_Bpp         = 4,
+				fb_depth       = 3,
+				fb_width       = 0,
+				fb_height      = 0,
+				fb_name        = &#039;&#039;,
+
+				rre_chunk_sz   = 100,
+
+				timing         = {
+					last_fbu       : 0,
+					fbu_total      : 0,
+					fbu_total_cnt  : 0,
+					full_fbu_total : 0,
+					full_fbu_cnt   : 0,
+
+					fbu_rt_start   : 0,
+					fbu_rt_total   : 0,
+					fbu_rt_cnt     : 0,
+					pixels         : 0
+				},
+
+				test_mode        = false,
+
+				/* Mouse state */
+				mouse_buttonMask = 0,
+				mouse_arr        = [],
+				viewportDragging = false,
+				viewportDragPos  = {};
+
+			// Configuration attributes
+			Util.conf_defaults(conf, that, defaults, [
+				[&#039;target&#039;,             &#039;wo&#039;, &#039;dom&#039;, null, &#039;VNC display rendering Canvas object&#039;],
+				[&#039;focusContainer&#039;,     &#039;wo&#039;, &#039;dom&#039;, document, &#039;DOM element that captures keyboard input&#039;],
+
+				[&#039;encrypt&#039;,            &#039;rw&#039;, &#039;bool&#039;, false, &#039;Use TLS/SSL/wss encryption&#039;],
+				[&#039;true_color&#039;,         &#039;rw&#039;, &#039;bool&#039;, true,  &#039;Request true color pixel data&#039;],
+				[&#039;local_cursor&#039;,       &#039;rw&#039;, &#039;bool&#039;, false, &#039;Request locally rendered cursor&#039;],
+				[&#039;shared&#039;,             &#039;rw&#039;, &#039;bool&#039;, true,  &#039;Request shared mode&#039;],
+				[&#039;view_only&#039;,          &#039;rw&#039;, &#039;bool&#039;, false, &#039;Disable client mouse/keyboard&#039;],
+				[&#039;xvp_password_sep&#039;,   &#039;rw&#039;, &#039;str&#039;,  &#039;@&#039;,   &#039;Separator for XVP password fields&#039;],
+				[&#039;disconnectTimeout&#039;,  &#039;rw&#039;, &#039;int&#039;, 3,    &#039;Time (s) to wait for disconnection&#039;],
+
+				[&#039;width&#039;,							 &#039;rw&#039;, &#039;int&#039;, 0,    &#039;Width of screen&#039;],
+				[&#039;height&#039;,						 &#039;rw&#039;, &#039;int&#039;, 0,    &#039;Height of screen&#039;],
+
+				[&#039;wsProtocols&#039;,        &#039;rw&#039;, &#039;arr&#039;, [&#039;binary&#039;, &#039;base64&#039;],
+					&#039;Protocols to use in the WebSocket connection&#039;],
+
+				// UltraVNC repeater ID to connect to
+				[&#039;repeaterID&#039;,         &#039;rw&#039;, &#039;str&#039;,  &#039;&#039;,    &#039;RepeaterID to connect to&#039;],
+
+				[&#039;viewportDrag&#039;,       &#039;rw&#039;, &#039;bool&#039;, false, &#039;Move the viewport on mouse drags&#039;],
+
+				// Callback functions
+				[&#039;onUpdateState&#039;,      &#039;rw&#039;, &#039;func&#039;, function() { },
+					&#039;onUpdateState(rfb, state, oldstate, statusMsg): RFB state update/change &#039;],
+				[&#039;onPasswordRequired&#039;, &#039;rw&#039;, &#039;func&#039;, function() { },
+					&#039;onPasswordRequired(rfb): VNC password is required &#039;],
+				[&#039;onClipboard&#039;,        &#039;rw&#039;, &#039;func&#039;, function() { },
+					&#039;onClipboard(rfb, text): RFB clipboard contents received&#039;],
+				[&#039;onBell&#039;,             &#039;rw&#039;, &#039;func&#039;, function() { },
+					&#039;onBell(rfb): RFB Bell message received &#039;],
+				[&#039;onFBUReceive&#039;,       &#039;rw&#039;, &#039;func&#039;, function() { },
+					&#039;onFBUReceive(rfb, fbu): RFB FBU received but not yet processed &#039;],
+				[&#039;onFBUComplete&#039;,      &#039;rw&#039;, &#039;func&#039;, function() { },
+					&#039;onFBUComplete(rfb, fbu): RFB FBU received and processed &#039;],
+				[&#039;onFBResize&#039;,         &#039;rw&#039;, &#039;func&#039;, function() { },
+					&#039;onFBResize(rfb, width, height): frame buffer resized&#039;],
+				[&#039;onDesktopName&#039;,      &#039;rw&#039;, &#039;func&#039;, function() { },
+					&#039;onDesktopName(rfb, name): desktop name received&#039;],
+				[&#039;onXvpInit&#039;,          &#039;rw&#039;, &#039;func&#039;, function() { },
+					&#039;onXvpInit(version): XVP extensions active for this connection&#039;],
+
+				// These callback names are deprecated
+				[&#039;updateState&#039;,        &#039;rw&#039;, &#039;func&#039;, function() { },
+					&#039;obsolete, use onUpdateState&#039;],
+				[&#039;clipboardReceive&#039;,   &#039;rw&#039;, &#039;func&#039;, function() { },
+					&#039;obsolete, use onClipboard&#039;]
+				]);
+
+
+			// Override/add some specific configuration getters/setters
+			that.set_local_cursor = function(cursor) {
+				if ((!cursor) || (cursor in {&#039;0&#039;:1, &#039;no&#039;:1, &#039;false&#039;:1})) {
+					conf.local_cursor = false;
+				} else {
+					if (display.get_cursor_uri()) {
+						conf.local_cursor = true;
+					} else {
+						Util.Warn(&#039;Browser does not support local cursor&#039;);
+					}
+				}
+			};
+
+			// These are fake configuration getters
+			that.get_display = function() { return display; };
+
+			that.get_keyboard = function() { return keyboard; };
+
+			that.get_mouse = function() { return mouse; };
+
+
+
+			//
+			// Setup routines
+			//
+
+			// Create the public API interface and initialize values that stay
+			// constant across connect/disconnect
+			function constructor() {
+				var i, rmode;
+				Util.Debug(&#039;&gt;&gt; RFB.constructor&#039;);
+
+				// Create lookup tables based encoding number
+				for (i=0; i &lt; encodings.length; i+=1) {
+					encHandlers[encodings[i][1]] = encHandlers[encodings[i][0]];
+					encNames[encodings[i][1]] = encodings[i][0];
+					encStats[encodings[i][1]] = [0, 0];
+				}
+				// Initialize display, mouse, keyboard, and websock
+				try {
+					display   = new Display({&#039;target&#039;: conf.target});
+				} catch (exc) {
+					Util.Error(&#039;Display exception: &#039; + exc);
+					updateState(&#039;fatal&#039;, &#039;No working Display&#039;);
+				}
+				keyboard = new Keyboard({
+					&#039;target&#039;: conf.focusContainer,
+					&#039;onKeyPress&#039;: keyPress
+				});
+
+				mouse = new Mouse({
+					&#039;target&#039;: conf.target,
+					&#039;keyboard&#039;: keyboard,
+					&#039;onMouseButton&#039;: mouseButton,
+					&#039;onMouseMove&#039;: mouseMove,
+					&#039;notify&#039;: keyboard.sync
+				});
+
+				rmode = display.get_render_mode();
+
+				ws = new Websock()();
+				ws.on(&#039;message&#039;, handle_message);
+				ws.on(&#039;open&#039;, function() {
+					if (rfb_state === &#039;connect&#039;) {
+						updateState(&#039;ProtocolVersion&#039;, &#039;Starting VNC handshake&#039;);
+					} else {
+						fail(&#039;Got unexpected WebSockets connection&#039;);
+					}
+				});
+				ws.on(&#039;close&#039;, function(e) {
+					Util.Warn(&#039;WebSocket on-close event&#039;);
+					var msg = &#039;&#039;;
+					if (e.code) {
+						msg = &#039; (code: &#039; + e.code;
+						if (e.reason) {
+							msg += &#039;, reason: &#039; + e.reason;
+						}
+						msg += &#039;)&#039;;
+					}
+					if (rfb_state === &#039;disconnect&#039;) {
+						updateState(&#039;disconnected&#039;, &#039;VNC disconnected&#039; + msg);
+					} else if (rfb_state === &#039;ProtocolVersion&#039;) {
+						fail(&#039;Failed to connect to server&#039; + msg);
+					} else if (rfb_state in {&#039;failed&#039;:1, &#039;disconnected&#039;:1}) {
+						Util.Error(&#039;Received onclose while disconnected&#039; + msg);
+					} else  {
+						fail(&#039;Server disconnected&#039; + msg);
+					}
+				});
+				ws.on(&#039;error&#039;, function() {
+					Util.Warn(&#039;WebSocket on-error event&#039;);
+					//fail(&#039;WebSock reported an error&#039;);
+				});
+
+
+				init_vars();
+
+				/* Check web-socket-js if no builtin WebSocket support */
+				if (Websock_native) {
+					Util.Info(&#039;Using native WebSockets&#039;);
+					updateState(&#039;loaded&#039;, &#039;noVNC ready: native WebSockets, &#039; + rmode);
+				} else {
+					Util.Warn(&#039;Using web-socket-js bridge. Flash version: &#039; +
+							  Util.Flash.version);
+					if ((! Util.Flash) ||
+						(Util.Flash.version &lt; 9)) {
+						updateState(&#039;fatal&#039;, &#039;WebSockets or &lt;a href=&quot;http://get.adobe.com/flashplayer&quot;&gt;Adobe Flash&lt;/a&gt; is required&#039;);
+					} else if (document.location.href.substr(0, 7) === &#039;file://&#039;) {
+						updateState(&#039;fatal&#039;, &#039;&quot;file://&quot; URL is incompatible with Adobe Flash&#039;);
+					} else {
+						updateState(&#039;loaded&#039;, &#039;noVNC ready: WebSockets emulation, &#039; + rmode);
+					}
+				}
+
+				Util.Debug(&#039;&lt;&lt; RFB.constructor&#039;);
+				return that;  // Return the public API interface
+			}
+
+			function connect() {
+				Util.Debug(&#039;&gt;&gt; RFB.connect&#039;);
+				var uri;
+
+				if (typeof UsingSocketIO !== &#039;undefined&#039;) {
+					uri = &#039;http&#039;;
+				} else {
+					uri = conf.encrypt ? &#039;wss&#039; : &#039;ws&#039;;
+				}
+				uri += &#039;://&#039; + rfb_host + &#039;:&#039; + rfb_port + &#039;/&#039; + rfb_path;
+				Util.Info(&#039;connecting to &#039; + uri);
+
+				ws.open(uri, conf.wsProtocols);
+
+				Util.Debug(&#039;&lt;&lt; RFB.connect&#039;);
+			}
+
+			// Initialize variables that are reset before each connection
+			init_vars = function() {
+				var i;
+
+				/* Reset state */
+				ws.init();
+
+				FBU.rects        = 0;
+				FBU.subrects     = 0;  // RRE and HEXTILE
+				FBU.lines        = 0;  // RAW
+				FBU.tiles        = 0;  // HEXTILE
+				FBU.zlibs        = []; // TIGHT zlib encoders
+				mouse_buttonMask = 0;
+				mouse_arr        = [];
+
+				// Clear the per connection encoding stats
+				for (i=0; i &lt; encodings.length; i+=1) {
+					encStats[encodings[i][1]][0] = 0;
+				}
+
+				for (i=0; i &lt; 4; i++) {
+					//FBU.zlibs[i] = new InflateStream();
+					FBU.zlibs[i] = new TINF();
+					FBU.zlibs[i].init();
+				}
+			};
+
+			// Print statistics
+			print_stats = function() {
+				var i, s;
+				Util.Info(&#039;Encoding stats for this connection:&#039;);
+				for (i=0; i &lt; encodings.length; i+=1) {
+					s = encStats[encodings[i][1]];
+					if ((s[0] + s[1]) &gt; 0) {
+						Util.Info(&#039;    &#039; + encodings[i][0] + &#039;: &#039; +
+								  s[0] + &#039; rects&#039;);
+					}
+				}
+				Util.Info(&#039;Encoding stats since page load:&#039;);
+				for (i=0; i &lt; encodings.length; i+=1) {
+					s = encStats[encodings[i][1]];
+					if ((s[0] + s[1]) &gt; 0) {
+						Util.Info(&#039;    &#039; + encodings[i][0] + &#039;: &#039; +
+								  s[1] + &#039; rects&#039;);
+					}
+				}
+			};
+
+			//
+			// Utility routines
+			//
+
+
+			/*
+			 * Page states:
+			 *   loaded       - page load, equivalent to disconnected
+			 *   disconnected - idle state
+			 *   connect      - starting to connect (to ProtocolVersion)
+			 *   normal       - connected
+			 *   disconnect   - starting to disconnect
+			 *   failed       - abnormal disconnect
+			 *   fatal        - failed to load page, or fatal error
+			 *
+			 * RFB protocol initialization states:
+			 *   ProtocolVersion
+			 *   Security
+			 *   Authentication
+			 *   password     - waiting for password, not part of RFB
+			 *   SecurityResult
+			 *   ClientInitialization - not triggered by server message
+			 *   ServerInitialization (to normal)
+			 */
+			updateState = function(state, statusMsg) {
+				var func, cmsg, oldstate = rfb_state;
+
+				if (state === oldstate) {
+					/* Already here, ignore */
+					Util.Debug(&#039;Already in state &quot;&quot; + state + &quot;&quot;, ignoring.&#039;);
+					return;
+				}
+
+				/*
+				 * These are disconnected states. A previous connect may
+				 * asynchronously cause a connection so make sure we are closed.
+				 */
+				if (state in {&#039;disconnected&#039;:1, &#039;loaded&#039;:1, &#039;connect&#039;:1,
+							  &#039;disconnect&#039;:1, &#039;failed&#039;:1, &#039;fatal&#039;:1}) {
+					if (sendTimer) {
+						clearInterval(sendTimer);
+						sendTimer = null;
+					}
+
+					if (msgTimer) {
+						clearTimeout(msgTimer);
+						msgTimer = null;
+					}
+
+					if (display &amp;&amp; display.get_context()) {
+						keyboard.ungrab();
+						mouse.ungrab();
+						display.defaultCursor();
+						if ((Util.get_logging() !== &#039;debug&#039;) ||
+							(state === &#039;loaded&#039;)) {
+							// Show noVNC logo on load and when disconnected if
+							// debug is off
+							display.clear();
+						}
+					}
+
+					ws.close();
+				}
+
+				if (oldstate === &#039;fatal&#039;) {
+					Util.Error(&#039;Fatal error, cannot continue&#039;);
+				}
+
+				if ((state === &#039;failed&#039;) || (state === &#039;fatal&#039;)) {
+					func = Util.Error;
+				} else {
+					func = Util.Warn;
+				}
+
+				cmsg = typeof(statusMsg) !== &#039;undefined&#039; ? (&#039; Msg: &#039; + statusMsg) : &#039;&#039;;
+				func(&#039;New state &quot;&#039; + state + &#039;&quot;, was &quot;&#039; + oldstate + &#039;&quot;.&#039; + cmsg);
+
+				if ((oldstate === &#039;failed&#039;) &amp;&amp; (state === &#039;disconnected&#039;)) {
+					// Do disconnect action, but stay in failed state
+					rfb_state = &#039;failed&#039;;
+				} else {
+					rfb_state = state;
+				}
+
+				if (disconnTimer &amp;&amp; (rfb_state !== &#039;disconnect&#039;)) {
+					Util.Debug(&#039;Clearing disconnect timer&#039;);
+					clearTimeout(disconnTimer);
+					disconnTimer = null;
+				}
+
+				switch (state) {
+					case &#039;normal&#039;:
+						if ((oldstate === &#039;disconnected&#039;) || (oldstate === &#039;failed&#039;)) {
+							Util.Error(&#039;Invalid transition from &quot;disconnected&quot; or &quot;failed&quot; to &quot;normal&quot;&#039;);
+						}
+
+						break;
+
+
+					case &#039;connect&#039;:
+
+						init_vars();
+						connect();
+
+						// WebSocket.onopen transitions to &#039;ProtocolVersion&#039;
+						break;
+
+
+					case &#039;disconnect&#039;:
+
+						if (! test_mode) {
+							disconnTimer = setTimeout(function () {
+									fail(&#039;Disconnect timeout&#039;);
+								}, conf.disconnectTimeout * 1000);
+						}
+
+						print_stats();
+
+						// WebSocket.onclose transitions to &#039;disconnected&#039;
+						break;
+
+
+					case &#039;failed&#039;:
+						if (oldstate === &#039;disconnected&#039;) {
+							Util.Error(&#039;Invalid transition from &quot;disconnected&quot; to &quot;failed&quot;&#039;);
+						}
+						if (oldstate === &#039;normal&#039;) {
+							Util.Error(&#039;Error while connected.&#039;);
+						}
+						if (oldstate === &#039;init&#039;) {
+							Util.Error(&#039;Error while initializing.&#039;);
+						}
+
+						// Make sure we transition to disconnected
+						setTimeout(function() { updateState(&#039;disconnected&#039;); }, 50);
+
+						break;
+
+
+					default:
+						// No state change action to take
+
+				}
+
+				if ((oldstate === &#039;failed&#039;) &amp;&amp; (state === &#039;disconnected&#039;)) {
+					// Leave the failed message
+					conf.updateState(that, state, oldstate); // Obsolete
+					conf.onUpdateState(that, state, oldstate);
+				} else {
+					conf.updateState(that, state, oldstate, statusMsg); // Obsolete
+					conf.onUpdateState(that, state, oldstate, statusMsg);
+				}
+			};
+
+			fail = function(msg) {
+				updateState(&#039;failed&#039;, msg);
+				return false;
+			};
+
+			handle_message = function() {
+				//Util.Debug(&#039;&gt;&gt; handle_message ws.rQlen(): &#039; + ws.rQlen());
+				//Util.Debug(&#039;ws.rQslice(0,20): &#039; + ws.rQslice(0,20) + &#039; (&#039; + ws.rQlen() + &#039;)&#039;);
+				if (ws.rQlen() === 0) {
+					Util.Warn(&#039;handle_message called on empty receive queue&#039;);
+					return;
+				}
+
+				switch (rfb_state) {
+					case &#039;disconnected&#039;:
+					case &#039;failed&#039;:
+						Util.Error(&#039;Got data while disconnected&#039;);
+						break;
+					case &#039;normal&#039;:
+						if (normal_msg() &amp;&amp; ws.rQlen() &gt; 0) {
+							// true means we can continue processing
+							// Give other events a chance to run
+							if (msgTimer === null) {
+								Util.Debug(&#039;More data to process, creating timer&#039;);
+								msgTimer = setTimeout(function () {
+									msgTimer = null;
+									handle_message();
+								}, 10);
+							} else {
+								Util.Debug(&#039;More data to process, existing timer&#039;);
+							}
+						}
+						break;
+					default:
+						init_msg();
+						break;
+				}
+			};
+
+
+			function genDES(password, challenge) {
+				var i, passwd = [];
+				for (i=0; i &lt; password.length; i += 1) {
+					passwd.push(password.charCodeAt(i));
+				}
+				return (new DES(passwd)).encrypt(challenge);
+			}
+
+			// overridable for testing
+			checkEvents = function() {
+				if (rfb_state === &#039;normal&#039; &amp;&amp; !viewportDragging &amp;&amp; mouse_arr.length &gt; 0) {
+					ws.send(mouse_arr);
+					mouse_arr = [];
+				}
+			};
+
+			keyPress = function(keysym, down) {
+				if (conf.view_only) { return; } // View only, skip keyboard events
+
+				ws.send(keyEvent(keysym, down));
+			};
+
+			mouseButton = function(x, y, down, bmask) {
+				if (down) {
+					mouse_buttonMask |= bmask;
+				} else {
+					mouse_buttonMask ^= bmask;
+				}
+
+				if (conf.viewportDrag) {
+					if (down &amp;&amp; !viewportDragging) {
+						viewportDragging = true;
+						viewportDragPos = {&#039;x&#039;: x, &#039;y&#039;: y};
+
+						// Skip sending mouse events
+						return;
+					} else {
+						viewportDragging = false;
+					}
+				}
+
+				if (conf.view_only) { return; } // View only, skip mouse events
+
+				var scale = display.get_scale();
+
+				mouse_arr = mouse_arr.concat(
+						pointerEvent(x/scale, y/scale));
+
+				ws.send(mouse_arr);
+				mouse_arr = [];
+			};
+
+			mouseMove = function(x, y) {
+				//Util.Debug(&#039;&gt;&gt; mouseMove &#039; + x + &#039;,&#039; + y);
+				var deltaX, deltaY;
+
+				if (viewportDragging) {
+					//deltaX = x - viewportDragPos.x; // drag viewport
+					deltaX = viewportDragPos.x - x; // drag frame buffer
+					//deltaY = y - viewportDragPos.y; // drag viewport
+					deltaY = viewportDragPos.y - y; // drag frame buffer
+					viewportDragPos = {&#039;x&#039;: x, &#039;y&#039;: y};
+					display.viewportChange(deltaX, deltaY);
+
+					// Skip sending mouse events
+					return;
+				}
+
+				if (conf.view_only) { return; } // View only, skip mouse events
+
+				var scale = display.get_scale();
+				// console.log(scale)
+				mouse_arr = mouse_arr.concat(
+						pointerEvent(x/scale, y/scale));
+
+				checkEvents();
+			};
+
+
+			//
+			// Server message handlers
+			//
+
+			// RFB/VNC initialisation message handler
+			init_msg = function() {
+				//Util.Debug(&#039;&gt;&gt; init_msg [rfb_state &#039;&#039; + rfb_state + &#039;&#039;]&#039;);
+
+				var strlen, reason, length, sversion, cversion, repeaterID,
+					i, types, num_types, challenge, response, bpp, depth,
+					big_endian, red_max, green_max, blue_max, red_shift,
+					green_shift, blue_shift, true_color, name_length, is_repeater,
+					xvp_sep, xvp_auth, xvp_auth_str;
+
+				//Util.Debug(&#039;ws.rQ (&#039; + ws.rQlen() + &#039;) &#039; + ws.rQslice(0));
+				switch (rfb_state) {
+
+				case &#039;ProtocolVersion&#039; :
+					if (ws.rQlen() &lt; 12) {
+						return fail(&#039;Incomplete protocol version&#039;);
+					}
+					sversion = ws.rQshiftStr(12).substr(4,7);
+					Util.Info(&#039;Server ProtocolVersion: &#039; + sversion);
+					is_repeater = 0;
+					switch (sversion) {
+						case &#039;000.000&#039;: is_repeater = 1; break; // UltraVNC repeater
+						case &#039;003.003&#039;: rfb_version = 3.3; break;
+						case &#039;003.006&#039;: rfb_version = 3.3; break;  // UltraVNC
+						case &#039;003.889&#039;: rfb_version = 3.3; break;  // Apple Remote Desktop
+						case &#039;003.007&#039;: rfb_version = 3.7; break;
+						case &#039;003.008&#039;: rfb_version = 3.8; break;
+						case &#039;004.000&#039;: rfb_version = 3.8; break;  // Intel AMT KVM
+						case &#039;004.001&#039;: rfb_version = 3.8; break;  // RealVNC 4.6
+						default:
+							return fail(&#039;Invalid server version &#039; + sversion);
+					}
+					if (is_repeater) {
+						repeaterID = conf.repeaterID;
+						while (repeaterID.length &lt; 250) {
+							repeaterID += &#039;\0&#039;;
+						}
+						ws.send_string(repeaterID);
+						break;
+					}
+					if (rfb_version &gt; rfb_max_version) {
+						rfb_version = rfb_max_version;
+					}
+
+					if (! test_mode) {
+						sendTimer = setInterval(function() {
+								// Send updates either at a rate of one update
+								// every 50ms, or whatever slower rate the network
+								// can handle.
+								ws.flush();
+							}, 50);
+					}
+
+					cversion = &#039;00&#039; + parseInt(rfb_version,10) +
+							   &#039;.00&#039; + ((rfb_version * 10) % 10);
+					ws.send_string(&#039;RFB &#039; + cversion + &#039;\n&#039;);
+					updateState(&#039;Security&#039;, &#039;Sent ProtocolVersion: &#039; + cversion);
+					break;
+
+				case &#039;Security&#039; :
+					if (rfb_version &gt;= 3.7) {
+						// Server sends supported list, client decides
+						num_types = ws.rQshift8();
+						if (ws.rQwait(&#039;security type&#039;, num_types, 1)) { return false; }
+						if (num_types === 0) {
+							strlen = ws.rQshift32();
+							reason = ws.rQshiftStr(strlen);
+							return fail(&#039;Security failure: &#039; + reason);
+						}
+						rfb_auth_scheme = 0;
+						types = ws.rQshiftBytes(num_types);
+						Util.Debug(&#039;Server security types: &#039; + types);
+						for (i=0; i &lt; types.length; i+=1) {
+							if ((types[i] &gt; rfb_auth_scheme) &amp;&amp; (types[i] &lt;= 16 || types[i] === 22)) {
+								rfb_auth_scheme = types[i];
+							}
+						}
+						if (rfb_auth_scheme === 0) {
+							return fail(&#039;Unsupported security types: &#039; + types);
+						}
+
+						ws.send([rfb_auth_scheme]);
+					} else {
+						// Server decides
+						if (ws.rQwait(&#039;security scheme&#039;, 4)) { return false; }
+						rfb_auth_scheme = ws.rQshift32();
+					}
+					updateState(&#039;Authentication&#039;,	&#039;Authenticating using scheme: &#039; + rfb_auth_scheme);
+					init_msg();  // Recursive fallthrough (workaround JSLint complaint)
+					break;
+
+				// Triggered by fallthough, not by server message
+				case &#039;Authentication&#039; :
+					//Util.Debug(&#039;Security auth scheme: &#039; + rfb_auth_scheme);
+					switch (rfb_auth_scheme) {
+						case 0:  // connection failed
+							if (ws.rQwait(&#039;auth reason&#039;, 4)) { return false; }
+							strlen = ws.rQshift32();
+							reason = ws.rQshiftStr(strlen);
+							return fail(&#039;Auth failure: &#039; + reason);
+						case 1:  // no authentication
+							if (rfb_version &gt;= 3.8) {
+								updateState(&#039;SecurityResult&#039;);
+								return;
+							}
+							// Fall through to ClientInitialisation
+							break;
+						case 22:  // XVP authentication
+							xvp_sep = conf.xvp_password_sep;
+							xvp_auth = rfb_password.split(xvp_sep);
+							if (xvp_auth.length &lt; 3) {
+								updateState(&#039;password&#039;, &#039;XVP credentials required (user&#039; + xvp_sep +
+											&#039;target&#039; + xvp_sep + &#039;password) -- got only &#039; + rfb_password);
+								conf.onPasswordRequired(that);
+								return;
+							}
+							xvp_auth_str = String.fromCharCode(xvp_auth[0].length) +
+										   String.fromCharCode(xvp_auth[1].length) +
+										   xvp_auth[0] +
+										   xvp_auth[1];
+							ws.send_string(xvp_auth_str);
+							rfb_password = xvp_auth.slice(2).join(xvp_sep);
+							rfb_auth_scheme = 2;
+							// Fall through to standard VNC authentication with remaining part of password
+							/* falls through */
+						case 2:  // VNC authentication
+							if (rfb_password.length === 0) {
+								// Notify via both callbacks since it is kind of
+								// a RFB state change and a UI interface issue.
+								updateState(&#039;password&#039;, &#039;Password Required&#039;);
+								conf.onPasswordRequired(that);
+								return;
+							}
+							if (ws.rQwait(&#039;auth challenge&#039;, 16)) { return false; }
+							challenge = ws.rQshiftBytes(16);
+							//Util.Debug(&#039;Password: &#039; + rfb_password);
+							//Util.Debug(&#039;Challenge: &#039; + challenge +
+							//           &#039; (&#039; + challenge.length + &#039;)&#039;);
+							response = genDES(rfb_password, challenge);
+							//Util.Debug(&#039;Response: &#039; + response +
+							//           &#039; (&#039; + response.length + &#039;)&#039;);
+
+							//Util.Debug(&#039;Sending DES encrypted auth response&#039;);
+							ws.send(response);
+							updateState(&#039;SecurityResult&#039;);
+							return;
+						case 16: // TightVNC Security Type
+							if (ws.rQwait(&#039;num tunnels&#039;, 4)) { return false; }
+							var numTunnels = ws.rQshift32();
+							//console.log(&#039;Number of tunnels: &#039;+numTunnels);
+
+							rfb_tightvnc = true;
+
+							if (numTunnels !== 0) {
+								fail(&#039;Protocol requested tunnels, not currently supported. numTunnels: &#039; + numTunnels);
+								return;
+							}
+
+							var clientSupportedTypes = {
+								&#039;STDVNOAUTH__&#039;: 1,
+								&#039;STDVVNCAUTH_&#039;: 2
+							};
+
+							var serverSupportedTypes = [];
+
+							if (ws.rQwait(&#039;sub auth count&#039;, 4)) { return false; }
+							var subAuthCount = ws.rQshift32();
+							//console.log(&#039;Sub auth count: &#039;+subAuthCount);
+							for (var a=0; a&lt;subAuthCount; a++) {
+
+								if (ws.rQwait(&#039;sub auth capabilities &#039;+a, 16)) {
+									return false;
+								}
+
+								// var capNum = ws.rQshift32();
+								var capabilities = ws.rQshiftStr(12);
+								//console.log(&#039;queue: &#039;+ws.rQlen());
+								//console.log(&#039;auth type: &#039;+capNum+&#039;: &#039;+capabilities);
+
+								serverSupportedTypes.push(capabilities);
+							}
+
+							for (var authType in clientSupportedTypes) {
+								if (serverSupportedTypes.indexOf(authType) !== -1) {
+									//console.log(&#039;selected authType &#039;+authType);
+									ws.send([0,0,0,clientSupportedTypes[authType]]);
+
+									switch (authType) {
+										case &#039;STDVNOAUTH__&#039;:
+											// No authentication
+											updateState(&#039;SecurityResult&#039;);
+											return;
+										case &#039;STDVVNCAUTH_&#039;:
+											// VNC Authentication.  Reenter auth handler to complete auth
+											rfb_auth_scheme = 2;
+											init_msg();
+											return;
+										default:
+											fail(&#039;Unsupported tiny auth scheme: &#039; + authType);
+											return;
+									}
+								}
+							}
+
+							return;
+						default:
+							fail(&#039;Unsupported auth scheme: &#039; + rfb_auth_scheme);
+							return;
+					}
+					updateState(&#039;ClientInitialisation&#039;, &#039;No auth required&#039;);
+					init_msg();  // Recursive fallthrough (workaround JSLint complaint)
+					break;
+
+				case &#039;SecurityResult&#039; :
+					if (ws.rQwait(&#039;VNC auth response &#039;, 4)) { return false; }
+					switch (ws.rQshift32()) {
+						case 0:  // OK
+							// Fall through to ClientInitialisation
+							break;
+						case 1:  // failed
+							if (rfb_version &gt;= 3.8) {
+								length = ws.rQshift32();
+								if (ws.rQwait(&#039;SecurityResult reason&#039;, length, 8)) {
+									return false;
+								}
+								reason = ws.rQshiftStr(length);
+								fail(reason);
+							} else {
+								fail(&#039;Authentication failed&#039;);
+							}
+							return;
+						case 2:  // too-many
+							return fail(&#039;Too many auth attempts&#039;);
+					}
+					updateState(&#039;ClientInitialisation&#039;, &#039;Authentication OK&#039;);
+					init_msg();  // Recursive fallthrough (workaround JSLint complaint)
+					break;
+
+				// Triggered by fallthough, not by server message
+				case &#039;ClientInitialisation&#039; :
+					ws.send([conf.shared ? 1 : 0]); // ClientInitialisation
+					updateState(&#039;ServerInitialisation&#039;, &#039;Authentication OK&#039;);
+					break;
+
+				case &#039;ServerInitialisation&#039; :
+					if (ws.rQwait(&#039;server initialization&#039;, 24)) { return false; }
+
+					/* Screen size */
+					fb_width  = ws.rQshift16();
+					fb_height = ws.rQshift16();
+
+					/* PIXEL_FORMAT */
+					bpp            = ws.rQshift8();
+					depth          = ws.rQshift8();
+					big_endian     = ws.rQshift8();
+					true_color     = ws.rQshift8();
+
+					red_max        = ws.rQshift16();
+					green_max      = ws.rQshift16();
+					blue_max       = ws.rQshift16();
+					red_shift      = ws.rQshift8();
+					green_shift    = ws.rQshift8();
+					blue_shift     = ws.rQshift8();
+					ws.rQshiftStr(3); // padding
+
+					Util.Info(&#039;Screen: &#039; + fb_width + &#039;x&#039; + fb_height +
+							  &#039;, bpp: &#039; + bpp + &#039;, depth: &#039; + depth +
+							  &#039;, big_endian: &#039; + big_endian +
+							  &#039;, true_color: &#039; + true_color +
+							  &#039;, red_max: &#039; + red_max +
+							  &#039;, green_max: &#039; + green_max +
+							  &#039;, blue_max: &#039; + blue_max +
+							  &#039;, red_shift: &#039; + red_shift +
+							  &#039;, green_shift: &#039; + green_shift +
+							  &#039;, blue_shift: &#039; + blue_shift);
+
+					if (big_endian !== 0) {
+						Util.Warn(&#039;Server native endian is not little endian&#039;);
+					}
+					if (red_shift !== 16) {
+						Util.Warn(&#039;Server native red-shift is not 16&#039;);
+					}
+					if (blue_shift !== 0) {
+						Util.Warn(&#039;Server native blue-shift is not 0&#039;);
+					}
+
+					/* Connection name/title */
+					name_length   = ws.rQshift32();
+					fb_name = Util.decodeUTF8(ws.rQshiftStr(name_length));
+					conf.onDesktopName(that, fb_name);
+
+					if (conf.true_color &amp;&amp; fb_name === &#039;Intel(r) AMT KVM&#039;) {
+						Util.Warn(&#039;Intel AMT KVM only support 8/16 bit depths. Disabling true color&#039;);
+						conf.true_color = false;
+					}
+
+					if (rfb_tightvnc) {
+						// In TightVNC mode, ServerInit message is extended
+						var numServerMessages = ws.rQshift16();
+						var numClientMessages = ws.rQshift16();
+						var numEncodings = ws.rQshift16();
+						ws.rQshift16(); // padding
+						//console.log(&#039;numServerMessages &#039;+numServerMessages);
+						//console.log(&#039;numClientMessages &#039;+numClientMessages);
+						//console.log(&#039;numEncodings &#039;+numEncodings);
+
+						for (var b=0; b&lt;numServerMessages; b++) {
+							var srvMsg = ws.rQshiftStr(16);
+							console.log(&#039;server message: &#039;+srvMsg);
+						}
+
+						for (var c=0; c&lt;numClientMessages; c++) {
+							var clientMsg = ws.rQshiftStr(16);
+							console.log(&#039;client message: &#039;+clientMsg);
+						}
+
+						for (var d=0; d&lt;numEncodings; d++) {
+							var encoding = ws.rQshiftStr(16);
+							console.log(&#039;encoding: &#039;+encoding);
+						}
+					}
+
+					display.set_true_color(conf.true_color);
+
+					conf.onFBResize(that, fb_width, fb_height);
+					// display.resize(fb_width, fb_height, true);
+					Util.Warn(&#039;Resize display to &#039;+fb_width+&#039;x&#039;+fb_height);
+
+					keyboard.grab();
+					mouse.grab();
+
+					if (conf.true_color) {
+						fb_Bpp           = 4;
+						fb_depth         = 3;
+					} else {
+						fb_Bpp           = 1;
+						fb_depth         = 1;
+					}
+
+					response = pixelFormat();
+					response = response.concat(clientEncodings());
+					response = response.concat(fbUpdateRequests()); // initial fbu-request
+					timing.fbu_rt_start = (new Date()).getTime();
+					timing.pixels = 0;
+					ws.send(response);
+
+					checkEvents();
+
+					if (conf.encrypt) {
+						updateState(&#039;normal&#039;, &#039;Connected (encrypted) to: &#039; + fb_name);
+					} else {
+						updateState(&#039;normal&#039;, &#039;Connected (unencrypted) to: &#039; + fb_name);
+					}
+					break;
+				}
+				//Util.Debug(&#039;&lt;&lt; init_msg&#039;);
+			};
+
+
+			/* Normal RFB/VNC server message handler */
+			normal_msg = function() {
+				//Util.Debug(&#039;&gt;&gt; normal_msg&#039;);
+
+				var ret = true, msg_type, length, text,
+					c, first_colour, num_colours, red, green, blue,
+					xvp_ver, xvp_msg;
+
+				if (FBU.rects &gt; 0) {
+					msg_type = 0;
+				} else {
+					msg_type = ws.rQshift8();
+				}
+				switch (msg_type) {
+				case 0:  // FramebufferUpdate
+					ret = framebufferUpdate(); // false means need more data
+					if (ret) {
+						// only allow one outstanding fbu-request at a time
+						ws.send(fbUpdateRequests());
+					}
+					break;
+				case 1:  // SetColourMapEntries
+					Util.Debug(&#039;SetColourMapEntries&#039;);
+					ws.rQshift8();  // Padding
+					first_colour = ws.rQshift16(); // First colour
+					num_colours = ws.rQshift16();
+					if (ws.rQwait(&#039;SetColourMapEntries&#039;, num_colours*6, 6)) {
+						return false;
+					}
+
+					for (c=0; c &lt; num_colours; c+=1) {
+						red = ws.rQshift16();
+						//Util.Debug(&#039;red before: &#039; + red);
+						red = parseInt(red / 256, 10);
+						//Util.Debug(&#039;red after: &#039; + red);
+						green = parseInt(ws.rQshift16() / 256, 10);
+						blue = parseInt(ws.rQshift16() / 256, 10);
+						display.set_colourMap([blue, green, red], first_colour + c);
+					}
+					Util.Debug(&#039;colourMap: &#039; + display.get_colourMap());
+					Util.Info(&#039;Registered &#039; + num_colours + &#039; colourMap entries&#039;);
+					//Util.Debug(&#039;colourMap: &#039; + display.get_colourMap());
+					break;
+				case 2:  // Bell
+					Util.Debug(&#039;Bell&#039;);
+					conf.onBell(that);
+					break;
+				case 3:  // ServerCutText
+					Util.Debug(&#039;ServerCutText&#039;);
+					if (ws.rQwait(&#039;ServerCutText header&#039;, 7, 1)) { return false; }
+					ws.rQshiftBytes(3);  // Padding
+					length = ws.rQshift32();
+					if (ws.rQwait(&#039;ServerCutText&#039;, length, 8)) { return false; }
+
+					text = ws.rQshiftStr(length);
+					conf.clipboardReceive(that, text); // Obsolete
+					conf.onClipboard(that, text);
+					break;
+				case 250:  // XVP
+					ws.rQshift8();  // Padding
+					xvp_ver = ws.rQshift8();
+					xvp_msg = ws.rQshift8();
+					switch (xvp_msg) {
+					case 0:  // XVP_FAIL
+						updateState(rfb_state, &#039;Operation failed&#039;);
+						break;
+					case 1:  // XVP_INIT
+						rfb_xvp_ver = xvp_ver;
+						Util.Info(&#039;XVP extensions enabled (version &#039; + rfb_xvp_ver + &#039;)&#039;);
+						conf.onXvpInit(rfb_xvp_ver);
+						break;
+					default:
+						fail(&#039;Disconnected: illegal server XVP message &#039; + xvp_msg);
+						break;
+					}
+					break;
+				default:
+					fail(&#039;Disconnected: illegal server message type &#039; + msg_type);
+					Util.Debug(&#039;ws.rQslice(0,30):&#039; + ws.rQslice(0,30));
+					break;
+				}
+				//Util.Debug(&#039;&lt;&lt; normal_msg&#039;);
+				return ret;
+			};
+
+			framebufferUpdate = function() {
+				var now, hdr, fbu_rt_diff, ret = true;
+
+				if (FBU.rects === 0) {
+					//Util.Debug(&#039;New FBU: ws.rQslice(0,20): &#039; + ws.rQslice(0,20));
+					if (ws.rQwait(&#039;FBU header&#039;, 3)) {
+						ws.rQunshift8(0);  // FBU msg_type
+						return false;
+					}
+					ws.rQshift8();  // padding
+					FBU.rects = ws.rQshift16();
+					//Util.Debug(&#039;FramebufferUpdate, rects:&#039; + FBU.rects);
+					FBU.bytes = 0;
+					timing.cur_fbu = 0;
+					if (timing.fbu_rt_start &gt; 0) {
+						now = (new Date()).getTime();
+						Util.Info(&#039;First FBU latency: &#039; + (now - timing.fbu_rt_start));
+					}
+				}
+
+				while (FBU.rects &gt; 0) {
+					if (rfb_state !== &#039;normal&#039;) {
+						return false;
+					}
+					if (ws.rQwait(&#039;FBU&#039;, FBU.bytes)) { return false; }
+					if (FBU.bytes === 0) {
+						if (ws.rQwait(&#039;rect header&#039;, 12)) { return false; }
+						/* New FramebufferUpdate */
+
+						hdr = ws.rQshiftBytes(12);
+						FBU.x      = (hdr[0] &lt;&lt; 8) + hdr[1];
+						FBU.y      = (hdr[2] &lt;&lt; 8) + hdr[3];
+						FBU.width  = (hdr[4] &lt;&lt; 8) + hdr[5];
+						FBU.height = (hdr[6] &lt;&lt; 8) + hdr[7];
+						FBU.encoding = parseInt((hdr[8] &lt;&lt; 24) + (hdr[9] &lt;&lt; 16) +
+												(hdr[10] &lt;&lt; 8) +  hdr[11], 10);
+
+						conf.onFBUReceive(that,
+								{&#039;x&#039;: FBU.x, &#039;y&#039;: FBU.y,
+								 &#039;width&#039;: FBU.width, &#039;height&#039;: FBU.height,
+								 &#039;encoding&#039;: FBU.encoding,
+								 &#039;encodingName&#039;: encNames[FBU.encoding]});
+
+						if (!encNames[FBU.encoding]) {
+							fail(&#039;Disconnected: unsupported encoding &#039; + FBU.encoding);
+							return false;
+						}
+					}
+
+					timing.last_fbu = (new Date()).getTime();
+
+					ret = encHandlers[FBU.encoding]();
+
+					now = (new Date()).getTime();
+					timing.cur_fbu += (now - timing.last_fbu);
+
+					if (ret) {
+						encStats[FBU.encoding][0] += 1;
+						encStats[FBU.encoding][1] += 1;
+						timing.pixels += FBU.width * FBU.height;
+					}
+
+					if (timing.pixels &gt;= (fb_width * fb_height)) {
+						if (((FBU.width === fb_width) &amp;&amp;
+									(FBU.height === fb_height)) ||
+								(timing.fbu_rt_start &gt; 0)) {
+							timing.full_fbu_total += timing.cur_fbu;
+							timing.full_fbu_cnt += 1;
+							Util.Info(&#039;Timing of full FBU, cur: &#039; +
+									  timing.cur_fbu + &#039;, total: &#039; +
+									  timing.full_fbu_total + &#039;, cnt: &#039; +
+									  timing.full_fbu_cnt + &#039;, avg: &#039; +
+									  (timing.full_fbu_total /
+										  timing.full_fbu_cnt));
+						}
+						if (timing.fbu_rt_start &gt; 0) {
+							fbu_rt_diff = now - timing.fbu_rt_start;
+							timing.fbu_rt_total += fbu_rt_diff;
+							timing.fbu_rt_cnt += 1;
+							Util.Info(&#039;full FBU round-trip, cur: &#039; +
+									  fbu_rt_diff + &#039;, total: &#039; +
+									  timing.fbu_rt_total + &#039;, cnt: &#039; +
+									  timing.fbu_rt_cnt + &#039;, avg: &#039; +
+									  (timing.fbu_rt_total /
+										  timing.fbu_rt_cnt));
+							timing.fbu_rt_start = 0;
+						}
+					}
+					if (! ret) {
+						return ret; // false ret means need more data
+					}
+				}
+
+				conf.onFBUComplete(that, {
+					&#039;x&#039;: FBU.x, &#039;y&#039;: FBU.y,
+					&#039;width&#039;: FBU.width, &#039;height&#039;: FBU.height,
+					&#039;encoding&#039;: FBU.encoding,
+					&#039;encodingName&#039;: encNames[FBU.encoding]
+				});
+
+				return true; // We finished this FBU
+			};
+
+			//
+			// FramebufferUpdate encodings
+			//
+
+			encHandlers.RAW = function display_raw() {
+				//Util.Debug(&#039;&gt;&gt; display_raw (&#039; + ws.rQlen() + &#039; bytes)&#039;);
+
+				var cur_y, cur_height;
+
+				if (FBU.lines === 0) {
+					FBU.lines = FBU.height;
+				}
+				FBU.bytes = FBU.width * fb_Bpp; // At least a line
+				if (ws.rQwait(&#039;RAW&#039;, FBU.bytes)) { return false; }
+				cur_y = FBU.y + (FBU.height - FBU.lines);
+				cur_height = Math.min(FBU.lines,
+									  Math.floor(ws.rQlen()/(FBU.width * fb_Bpp)));
+				display.blitImage(FBU.x, cur_y, FBU.width, cur_height,
+						ws.get_rQ(), ws.get_rQi());
+				ws.rQshiftBytes(FBU.width * cur_height * fb_Bpp);
+				FBU.lines -= cur_height;
+
+				if (FBU.lines &gt; 0) {
+					FBU.bytes = FBU.width * fb_Bpp; // At least another line
+				} else {
+					FBU.rects -= 1;
+					FBU.bytes = 0;
+				}
+				//Util.Debug(&#039;&lt;&lt; display_raw (&#039; + ws.rQlen() + &#039; bytes)&#039;);
+				return true;
+			};
+
+			encHandlers.COPYRECT = function display_copy_rect() {
+				//Util.Debug(&#039;&gt;&gt; display_copy_rect&#039;);
+
+				FBU.bytes = 4;
+				if (ws.rQwait(&#039;COPYRECT&#039;, 4)) { return false; }
+				display.renderQ_push({
+						&#039;type&#039;: &#039;copy&#039;,
+						&#039;old_x&#039;: ws.rQshift16(),
+						&#039;old_y&#039;: ws.rQshift16(),
+						&#039;x&#039;: FBU.x,
+						&#039;y&#039;: FBU.y,
+						&#039;width&#039;: FBU.width,
+						&#039;height&#039;: FBU.height});
+				FBU.rects -= 1;
+				FBU.bytes = 0;
+				return true;
+			};
+
+			encHandlers.RRE = function display_rre() {
+				//Util.Debug(&#039;&gt;&gt; display_rre (&#039; + ws.rQlen() + &#039; bytes)&#039;);
+				var color, x, y, width, height, chunk;
+
+				if (FBU.subrects === 0) {
+					FBU.bytes = 4+fb_Bpp;
+					if (ws.rQwait(&#039;RRE&#039;, 4+fb_Bpp)) { return false; }
+					FBU.subrects = ws.rQshift32();
+					color = ws.rQshiftBytes(fb_Bpp); // Background
+					display.fillRect(FBU.x, FBU.y, FBU.width, FBU.height, color);
+				}
+				while ((FBU.subrects &gt; 0) &amp;&amp; (ws.rQlen() &gt;= (fb_Bpp + 8))) {
+					color = ws.rQshiftBytes(fb_Bpp);
+					x = ws.rQshift16();
+					y = ws.rQshift16();
+					width = ws.rQshift16();
+					height = ws.rQshift16();
+					display.fillRect(FBU.x + x, FBU.y + y, width, height, color);
+					FBU.subrects -= 1;
+				}
+				//Util.Debug(&#039;   display_rre: rects: &#039; + FBU.rects +
+				//           &#039;, FBU.subrects: &#039; + FBU.subrects);
+
+				if (FBU.subrects &gt; 0) {
+					chunk = Math.min(rre_chunk_sz, FBU.subrects);
+					FBU.bytes = (fb_Bpp + 8) * chunk;
+				} else {
+					FBU.rects -= 1;
+					FBU.bytes = 0;
+				}
+				//Util.Debug(&#039;&lt;&lt; display_rre, FBU.bytes: &#039; + FBU.bytes);
+				return true;
+			};
+
+			encHandlers.HEXTILE = function display_hextile() {
+				//Util.Debug(&#039;&gt;&gt; display_hextile&#039;);
+				var subencoding, subrects, color, cur_tile,
+					tile_x, x, w, tile_y, y, h, xy, s, sx, sy, wh, sw, sh,
+					rQ = ws.get_rQ(), rQi = ws.get_rQi();
+
+				if (FBU.tiles === 0) {
+					FBU.tiles_x = Math.ceil(FBU.width/16);
+					FBU.tiles_y = Math.ceil(FBU.height/16);
+					FBU.total_tiles = FBU.tiles_x * FBU.tiles_y;
+					FBU.tiles = FBU.total_tiles;
+				}
+
+				/* FBU.bytes comes in as 1, ws.rQlen() at least 1 */
+				while (FBU.tiles &gt; 0) {
+					FBU.bytes = 1;
+					if (ws.rQwait(&#039;HEXTILE subencoding&#039;, FBU.bytes)) { return false; }
+					subencoding = rQ[rQi];  // Peek
+					if (subencoding &gt; 30) { // Raw
+						fail(&#039;Disconnected: illegal hextile subencoding &#039; + subencoding);
+						//Util.Debug(&#039;ws.rQslice(0,30):&#039; + ws.rQslice(0,30));
+						return false;
+					}
+					subrects = 0;
+					cur_tile = FBU.total_tiles - FBU.tiles;
+					tile_x = cur_tile % FBU.tiles_x;
+					tile_y = Math.floor(cur_tile / FBU.tiles_x);
+					x = FBU.x + tile_x * 16;
+					y = FBU.y + tile_y * 16;
+					w = Math.min(16, (FBU.x + FBU.width) - x);
+					h = Math.min(16, (FBU.y + FBU.height) - y);
+
+					/* Figure out how much we are expecting */
+					if (subencoding &amp; 0x01) { // Raw
+						//Util.Debug(&#039;   Raw subencoding&#039;);
+						FBU.bytes += w * h * fb_Bpp;
+					} else {
+						if (subencoding &amp; 0x02) { // Background
+							FBU.bytes += fb_Bpp;
+						}
+						if (subencoding &amp; 0x04) { // Foreground
+							FBU.bytes += fb_Bpp;
+						}
+						if (subencoding &amp; 0x08) { // AnySubrects
+							FBU.bytes += 1;   // Since we aren&#039;t shifting it off
+							if (ws.rQwait(&#039;hextile subrects header&#039;, FBU.bytes)) { return false; }
+							subrects = rQ[rQi + FBU.bytes-1]; // Peek
+							if (subencoding &amp; 0x10) { // SubrectsColoured
+								FBU.bytes += subrects * (fb_Bpp + 2);
+							} else {
+								FBU.bytes += subrects * 2;
+							}
+						}
+					}
+
+					/*
+					Util.Debug(&#039;   tile:&#039; + cur_tile + &#039;/&#039; + (FBU.total_tiles - 1) +
+						  &#039; (&#039; + tile_x + &#039;,&#039; + tile_y + &#039;)&#039; +
+						  &#039; [&#039; + x + &#039;,&#039; + y + &#039;]@&#039; + w + &#039;x&#039; + h +
+						  &#039;, subenc:&#039; + subencoding +
+						  &#039;(last: &#039; + FBU.lastsubencoding + &#039;), subrects:&#039; +
+						  subrects +
+						  &#039;, ws.rQlen():&#039; + ws.rQlen() + &#039;, FBU.bytes:&#039; + FBU.bytes +
+						  &#039; last:&#039; + ws.rQslice(FBU.bytes-10, FBU.bytes) +
+						  &#039; next:&#039; + ws.rQslice(FBU.bytes-1, FBU.bytes+10));
+					*/
+					if (ws.rQwait(&#039;hextile&#039;, FBU.bytes)) { return false; }
+
+					/* We know the encoding and have a whole tile */
+					FBU.subencoding = rQ[rQi];
+					rQi += 1;
+					if (FBU.subencoding === 0) {
+						if (FBU.lastsubencoding &amp; 0x01) {
+							/* Weird: ignore blanks after RAW */
+							Util.Debug(&#039;     Ignoring blank after RAW&#039;);
+						} else {
+							display.fillRect(x, y, w, h, FBU.background);
+						}
+					} else if (FBU.subencoding &amp; 0x01) { // Raw
+						display.blitImage(x, y, w, h, rQ, rQi);
+						rQi += FBU.bytes - 1;
+					} else {
+						if (FBU.subencoding &amp; 0x02) { // Background
+							FBU.background = rQ.slice(rQi, rQi + fb_Bpp);
+							rQi += fb_Bpp;
+						}
+						if (FBU.subencoding &amp; 0x04) { // Foreground
+							FBU.foreground = rQ.slice(rQi, rQi + fb_Bpp);
+							rQi += fb_Bpp;
+						}
+
+						display.startTile(x, y, w, h, FBU.background);
+						if (FBU.subencoding &amp; 0x08) { // AnySubrects
+							subrects = rQ[rQi];
+							rQi += 1;
+							for (s = 0; s &lt; subrects; s += 1) {
+								if (FBU.subencoding &amp; 0x10) { // SubrectsColoured
+									color = rQ.slice(rQi, rQi + fb_Bpp);
+									rQi += fb_Bpp;
+								} else {
+									color = FBU.foreground;
+								}
+								xy = rQ[rQi];
+								rQi += 1;
+								sx = (xy &gt;&gt; 4);
+								sy = (xy &amp; 0x0f);
+
+								wh = rQ[rQi];
+								rQi += 1;
+								sw = (wh &gt;&gt; 4)   + 1;
+								sh = (wh &amp; 0x0f) + 1;
+
+								display.subTile(sx, sy, sw, sh, color);
+							}
+						}
+						display.finishTile();
+					}
+					ws.set_rQi(rQi);
+					FBU.lastsubencoding = FBU.subencoding;
+					FBU.bytes = 0;
+					FBU.tiles -= 1;
+				}
+
+				if (FBU.tiles === 0) {
+					FBU.rects -= 1;
+				}
+
+				//Util.Debug(&#039;&lt;&lt; display_hextile&#039;);
+				return true;
+			};
+
+
+			// Get &#039;compact length&#039; header and data size
+			getTightCLength = function (arr) {
+				var header = 1, data = 0;
+				data += arr[0] &amp; 0x7f;
+				if (arr[0] &amp; 0x80) {
+					header += 1;
+					data += (arr[1] &amp; 0x7f) &lt;&lt; 7;
+					if (arr[1] &amp; 0x80) {
+						header += 1;
+						data += arr[2] &lt;&lt; 14;
+					}
+				}
+				return [header, data];
+			};
+
+			function display_tight(isTightPNG) {
+				//Util.Debug(&#039;&gt;&gt; display_tight&#039;);
+
+				if (fb_depth === 1) {
+					fail(&#039;Tight protocol handler only implements true color mode&#039;);
+				}
+
+				var ctl, cmode, clength, color, img, data;
+				var filterId = -1, resetStreams = 0, streamId = -1;
+				var rQ = ws.get_rQ(), rQi = ws.get_rQi();
+
+				FBU.bytes = 1; // compression-control byte
+				if (ws.rQwait(&#039;TIGHT compression-control&#039;, FBU.bytes)) { return false; }
+
+				// var checksum = function(data) {
+				// 	var sum=0, i;
+				// 	for (i=0; i&lt;data.length;i++) {
+				// 		sum += data[i];
+				// 		if (sum &gt; 65536) {
+				// 			sum -= 65536;
+				// 		}
+				// 	}
+				// 	return sum;
+				// };
+
+				var decompress = function(data) {
+					for (var i=0; i&lt;4; i++) {
+						if ((resetStreams &gt;&gt; i) &amp; 1) {
+							FBU.zlibs[i].reset();
+							Util.Info(&#039;Reset zlib stream &#039; + i);
+						}
+					}
+					var uncompressed = FBU.zlibs[streamId].uncompress(data, 0);
+					if (uncompressed.status !== 0) {
+						Util.Error(&#039;Invalid data in zlib stream&#039;);
+					}
+					//Util.Warn(&#039;Decompressed &#039; + data.length + &#039; to &#039; +
+					//    uncompressed.data.length + &#039; checksums &#039; +
+					//    checksum(data) + &#039;:&#039; + checksum(uncompressed.data));
+
+					return uncompressed.data;
+				};
+
+				var indexedToRGB = function (data, numColors, palette, width, height) {
+					// Convert indexed (palette based) image data to RGB
+					// TODO: reduce number of calculations inside loop
+					var dest = [];
+					var x, y, b, w, w1, dp, sp;
+					if (numColors === 2) {
+						w = Math.floor((width + 7) / 8);
+						w1 = Math.floor(width / 8);
+						for (y = 0; y &lt; height; y++) {
+							for (x = 0; x &lt; w1; x++) {
+								for (b = 7; b &gt;= 0; b--) {
+									dp = (y*width + x*8 + 7-b) * 3;
+									sp = (data[y*w + x] &gt;&gt; b &amp; 1) * 3;
+									dest[dp  ] = palette[sp  ];
+									dest[dp+1] = palette[sp+1];
+									dest[dp+2] = palette[sp+2];
+								}
+							}
+							for (b = 7; b &gt;= 8 - width % 8; b--) {
+								dp = (y*width + x*8 + 7-b) * 3;
+								sp = (data[y*w + x] &gt;&gt; b &amp; 1) * 3;
+								dest[dp  ] = palette[sp  ];
+								dest[dp+1] = palette[sp+1];
+								dest[dp+2] = palette[sp+2];
+							}
+						}
+					} else {
+						for (y = 0; y &lt; height; y++) {
+							for (x = 0; x &lt; width; x++) {
+								dp = (y*width + x) * 3;
+								sp = data[y*width + x] * 3;
+								dest[dp  ] = palette[sp  ];
+								dest[dp+1] = palette[sp+1];
+								dest[dp+2] = palette[sp+2];
+							}
+						}
+					}
+					return dest;
+				};
+
+				var handlePalette = function() {
+					var numColors = rQ[rQi + 2] + 1;
+					var paletteSize = numColors * fb_depth;
+					FBU.bytes += paletteSize;
+					if (ws.rQwait(&#039;TIGHT palette &#039; + cmode, FBU.bytes)) { return false; }
+
+					var bpp = (numColors &lt;= 2) ? 1 : 8;
+					var rowSize = Math.floor((FBU.width * bpp + 7) / 8);
+					var raw = false;
+					if (rowSize * FBU.height &lt; 12) {
+						raw = true;
+						clength = [0, rowSize * FBU.height];
+					} else {
+						clength = getTightCLength(ws.rQslice(3 + paletteSize,
+															 3 + paletteSize + 3));
+					}
+					FBU.bytes += clength[0] + clength[1];
+					if (ws.rQwait(&#039;TIGHT &#039; + cmode, FBU.bytes)) { return false; }
+
+					// Shift ctl, filter id, num colors, palette entries, and clength off
+					ws.rQshiftBytes(3);
+					var palette = ws.rQshiftBytes(paletteSize);
+					ws.rQshiftBytes(clength[0]);
+
+					if (raw) {
+						data = ws.rQshiftBytes(clength[1]);
+					} else {
+						data = decompress(ws.rQshiftBytes(clength[1]));
+					}
+
+					// Convert indexed (palette based) image data to RGB
+					var rgb = indexedToRGB(data, numColors, palette, FBU.width, FBU.height);
+
+					// Add it to the render queue
+					display.renderQ_push({
+							&#039;type&#039;: &#039;blitRgb&#039;,
+							&#039;data&#039;: rgb,
+							&#039;x&#039;: FBU.x,
+							&#039;y&#039;: FBU.y,
+							&#039;width&#039;: FBU.width,
+							&#039;height&#039;: FBU.height});
+					return true;
+				};
+
+				var handleCopy = function() {
+					var raw = false;
+					var uncompressedSize = FBU.width * FBU.height * fb_depth;
+					if (uncompressedSize &lt; 12) {
+						raw = true;
+						clength = [0, uncompressedSize];
+					} else {
+						clength = getTightCLength(ws.rQslice(1, 4));
+					}
+					FBU.bytes = 1 + clength[0] + clength[1];
+					if (ws.rQwait(&#039;TIGHT &#039; + cmode, FBU.bytes)) { return false; }
+
+					// Shift ctl, clength off
+					ws.rQshiftBytes(1 + clength[0]);
+
+					if (raw) {
+						data = ws.rQshiftBytes(clength[1]);
+					} else {
+						data = decompress(ws.rQshiftBytes(clength[1]));
+					}
+
+					display.renderQ_push({
+							&#039;type&#039;: &#039;blitRgb&#039;,
+							&#039;data&#039;: data,
+							&#039;x&#039;: FBU.x,
+							&#039;y&#039;: FBU.y,
+							&#039;width&#039;: FBU.width,
+							&#039;height&#039;: FBU.height});
+					return true;
+				};
+
+				ctl = ws.rQpeek8();
+
+				// Keep tight reset bits
+				resetStreams = ctl &amp; 0xF;
+
+				// Figure out filter
+				ctl = ctl &gt;&gt; 4;
+				streamId = ctl &amp; 0x3;
+
+				if (ctl === 0x08) {
+					cmode = &#039;fill&#039;;
+				} else if (ctl === 0x09) {
+					cmode = &#039;jpeg&#039;;
+				} else if (ctl === 0x0A) {
+					cmode = &#039;png&#039;;
+				} else if (ctl &amp; 0x04) {
+					cmode = &#039;filter&#039;;
+				} else if (ctl &lt; 0x04) {
+					cmode = &#039;copy&#039;;
+				} else {
+					return fail(&#039;Illegal tight compression received, ctl: &#039; + ctl);
+				}
+
+				if (isTightPNG &amp;&amp; (cmode === &#039;filter&#039; || cmode === &#039;copy&#039;)) {
+					return fail(&#039;filter/copy received in tightPNG mode&#039;);
+				}
+
+				switch (cmode) {
+					// fill uses fb_depth because TPIXELs drop the padding byte
+					case &#039;fill&#039;:   FBU.bytes += fb_depth; break; // TPIXEL
+					case &#039;jpeg&#039;:   FBU.bytes += 3;        break; // max clength
+					case &#039;png&#039;:    FBU.bytes += 3;        break; // max clength
+					case &#039;filter&#039;: FBU.bytes += 2;        break; // filter id + num colors if palette
+					case &#039;copy&#039;:                          break;
+				}
+
+				if (ws.rQwait(&#039;TIGHT &#039; + cmode, FBU.bytes)) { return false; }
+
+				//Util.Debug(&#039;   ws.rQslice(0,20): &#039; + ws.rQslice(0,20) + &#039; (&#039; + ws.rQlen() + &#039;)&#039;);
+				//Util.Debug(&#039;   cmode: &#039; + cmode);
+
+				// Determine FBU.bytes
+				switch (cmode) {
+				case &#039;fill&#039;:
+					ws.rQshift8(); // shift off ctl
+					color = ws.rQshiftBytes(fb_depth);
+					display.renderQ_push({
+							&#039;type&#039;: &#039;fill&#039;,
+							&#039;x&#039;: FBU.x,
+							&#039;y&#039;: FBU.y,
+							&#039;width&#039;: FBU.width,
+							&#039;height&#039;: FBU.height,
+							&#039;color&#039;: [color[2], color[1], color[0]] });
+					break;
+				case &#039;png&#039;:
+				case &#039;jpeg&#039;:
+					clength = getTightCLength(ws.rQslice(1, 4));
+					FBU.bytes = 1 + clength[0] + clength[1]; // ctl + clength size + jpeg-data
+					if (ws.rQwait(&#039;TIGHT &#039; + cmode, FBU.bytes)) { return false; }
+
+					// We have everything, render it
+					//Util.Debug(&#039;   jpeg, ws.rQlen(): &#039; + ws.rQlen() + &#039;, clength[0]: &#039; +
+					//           clength[0] + &#039;, clength[1]: &#039; + clength[1]);
+					ws.rQshiftBytes(1 + clength[0]); // shift off ctl + compact length
+					img = new Image();
+					img.src = &#039;data:image/&#039; + cmode +
+						extract_data_uri(ws.rQshiftBytes(clength[1]));
+					display.renderQ_push({
+							&#039;type&#039;: &#039;img&#039;,
+							&#039;img&#039;: img,
+							&#039;x&#039;: FBU.x,
+							&#039;y&#039;: FBU.y});
+					img = null;
+					break;
+				case &#039;filter&#039;:
+					filterId = rQ[rQi + 1];
+					if (filterId === 1) {
+						if (!handlePalette()) { return false; }
+					} else {
+						// Filter 0, Copy could be valid here, but servers don&#039;t send it as an explicit filter
+						// Filter 2, Gradient is valid but not used if jpeg is enabled
+						throw(&#039;Unsupported tight subencoding received, filter: &#039; + filterId);
+					}
+					break;
+				case &#039;copy&#039;:
+					if (!handleCopy()) { return false; }
+					break;
+				}
+
+				FBU.bytes = 0;
+				FBU.rects -= 1;
+				//Util.Debug(&#039;   ending ws.rQslice(0,20): &#039; + ws.rQslice(0,20) + &#039; (&#039; + ws.rQlen() + &#039;)&#039;);
+				//Util.Debug(&#039;&lt;&lt; display_tight_png&#039;);
+				return true;
+			}
+
+			extract_data_uri = function(arr) {
+				//var i, stra = [];
+				//for (i=0; i&lt; arr.length; i += 1) {
+				//    stra.push(String.fromCharCode(arr[i]));
+				//}
+				//return &#039;,&#039; + escape(stra.join(&#039;&#039;));
+				return &#039;;base64,&#039; + Base64.encode(arr);
+			};
+
+			encHandlers.TIGHT = function () { return display_tight(false); };
+			encHandlers.TIGHT_PNG = function () { return display_tight(true); };
+
+			encHandlers.last_rect = function last_rect() {
+				//Util.Debug(&#039;&gt;&gt; last_rect&#039;);
+				FBU.rects = 0;
+				//Util.Debug(&#039;&lt;&lt; last_rect&#039;);
+				return true;
+			};
+
+			encHandlers.DesktopSize = function set_desktopsize() {
+				Util.Debug(&#039;&gt;&gt; set_desktopsize&#039;);
+				fb_width = FBU.width;
+				fb_height = FBU.height;
+				conf.onFBResize(that, fb_width, fb_height);
+				display.resize(fb_width, fb_height);
+				timing.fbu_rt_start = (new Date()).getTime();
+
+				FBU.bytes = 0;
+				FBU.rects -= 1;
+
+				Util.Debug(&#039;&lt;&lt; set_desktopsize&#039;);
+				return true;
+			};
+
+			encHandlers.Cursor = function set_cursor() {
+				var x, y, w, h, pixelslength, masklength;
+				Util.Debug(&#039;&gt;&gt; set_cursor&#039;);
+				x = FBU.x;  // hotspot-x
+				y = FBU.y;  // hotspot-y
+				w = FBU.width;
+				h = FBU.height;
+
+				pixelslength = w * h * fb_Bpp;
+				masklength = Math.floor((w + 7) / 8) * h;
+
+				FBU.bytes = pixelslength + masklength;
+				if (ws.rQwait(&#039;cursor encoding&#039;, FBU.bytes)) { return false; }
+
+				//Util.Debug(&#039;   set_cursor, x: &#039; + x + &#039;, y: &#039; + y + &#039;, w: &#039; + w + &#039;, h: &#039; + h);
+
+				display.changeCursor(ws.rQshiftBytes(pixelslength),
+										ws.rQshiftBytes(masklength),
+										x, y, w, h);
+
+				FBU.bytes = 0;
+				FBU.rects -= 1;
+
+				Util.Debug(&#039;&lt;&lt; set_cursor&#039;);
+				return true;
+			};
+
+			encHandlers.JPEG_quality_lo = function set_jpeg_quality() {
+				Util.Error(&#039;Server sent jpeg_quality pseudo-encoding&#039;);
+			};
+
+			encHandlers.compress_lo = function set_compress_level() {
+				Util.Error(&#039;Server sent compress level pseudo-encoding&#039;);
+			};
+
+			/*
+			 * Client message routines
+			 */
+
+			pixelFormat = function() {
+				//Util.Debug(&#039;&gt;&gt; pixelFormat&#039;);
+				var arr;
+				arr = [0];     // msg-type
+				arr.push8(0);  // padding
+				arr.push8(0);  // padding
+				arr.push8(0);  // padding
+
+				arr.push8(fb_Bpp * 8); // bits-per-pixel
+				arr.push8(fb_depth * 8); // depth
+				arr.push8(0);  // little-endian
+				arr.push8(conf.true_color ? 1 : 0);  // true-color
+
+				arr.push16(255);  // red-max
+				arr.push16(255);  // green-max
+				arr.push16(255);  // blue-max
+				arr.push8(16);    // red-shift
+				arr.push8(8);     // green-shift
+				arr.push8(0);     // blue-shift
+
+				arr.push8(0);     // padding
+				arr.push8(0);     // padding
+				arr.push8(0);     // padding
+				//Util.Debug(&#039;&lt;&lt; pixelFormat&#039;);
+				return arr;
+			};
+
+			clientEncodings = function() {
+				//Util.Debug(&#039;&gt;&gt; clientEncodings&#039;);
+				var arr, i, encList = [];
+
+				for (i=0; i&lt;encodings.length; i += 1) {
+					if ((encodings[i][0] === &#039;Cursor&#039;) &amp;&amp;
+						(! conf.local_cursor)) {
+						Util.Debug(&#039;Skipping Cursor pseudo-encoding&#039;);
+
+					// TODO: remove this when we have tight+non-true-color
+					} else if ((encodings[i][0] === &#039;TIGHT&#039;) &amp;&amp;
+							   (! conf.true_color)) {
+						Util.Warn(&#039;Skipping tight, only support with true color&#039;);
+					} else {
+						//Util.Debug(&#039;Adding encoding: &#039; + encodings[i][0]);
+						encList.push(encodings[i][1]);
+					}
+				}
+
+				arr = [2];     // msg-type
+				arr.push8(0);  // padding
+
+				arr.push16(encList.length); // encoding count
+				for (i=0; i &lt; encList.length; i += 1) {
+					arr.push32(encList[i]);
+				}
+				//Util.Debug(&#039;&lt;&lt; clientEncodings: &#039; + arr);
+				return arr;
+			};
+
+			fbUpdateRequest = function(incremental, x, y, xw, yw) {
+				//Util.Debug(&#039;&gt;&gt; fbUpdateRequest&#039;);
+				if (typeof(x) === &#039;undefined&#039;) { x = 0; }
+				if (typeof(y) === &#039;undefined&#039;) { y = 0; }
+				if (typeof(xw) === &#039;undefined&#039;) { xw = fb_width; }
+				if (typeof(yw) === &#039;undefined&#039;) { yw = fb_height; }
+				var arr;
+				arr = [3];  // msg-type
+				arr.push8(incremental);
+				arr.push16(x);
+				arr.push16(y);
+				arr.push16(xw);
+				arr.push16(yw);
+				//Util.Debug(&#039;&lt;&lt; fbUpdateRequest&#039;);
+				return arr;
+			};
+
+			// Based on clean/dirty areas, generate requests to send
+			fbUpdateRequests = function() {
+				var cleanDirty = display.getCleanDirtyReset(),
+					arr = [], i, cb, db;
+
+				cb = cleanDirty.cleanBox;
+				if (cb.w &gt; 0 &amp;&amp; cb.h &gt; 0) {
+					// Request incremental for clean box
+					arr = arr.concat(fbUpdateRequest(1, cb.x, cb.y, cb.w, cb.h));
+				}
+				for (i = 0; i &lt; cleanDirty.dirtyBoxes.length; i++) {
+					db = cleanDirty.dirtyBoxes[i];
+					// Force all (non-incremental for dirty box
+					arr = arr.concat(fbUpdateRequest(0, db.x, db.y, db.w, db.h));
+				}
+				return arr;
+			};
+
+
+
+			keyEvent = function(keysym, down) {
+				//Util.Debug(&#039;&gt;&gt; keyEvent, keysym: &#039; + keysym + &#039;, down: &#039; + down);
+				var arr;
+				arr = [4];  // msg-type
+				arr.push8(down);
+				arr.push16(0);
+				arr.push32(keysym);
+				//Util.Debug(&#039;&lt;&lt; keyEvent&#039;);
+				return arr;
+			};
+
+			pointerEvent = function(x, y) {
+				//Util.Debug(&#039;&gt;&gt; pointerEvent, x,y: &#039; + x + &#039;,&#039; + y +
+				//           &#039; , mask: &#039; + mouse_buttonMask);
+				var arr;
+				arr = [5];  // msg-type
+				arr.push8(mouse_buttonMask);
+				arr.push16(x);
+				arr.push16(y);
+				//Util.Debug(&#039;&lt;&lt; pointerEvent&#039;);
+				return arr;
+			};
+
+			clientCutText = function(text) {
+				//Util.Debug(&#039;&gt;&gt; clientCutText&#039;);
+				var arr, i, n;
+				arr = [6];     // msg-type
+				arr.push8(0);  // padding
+				arr.push8(0);  // padding
+				arr.push8(0);  // padding
+				arr.push32(text.length);
+				n = text.length;
+				for (i=0; i &lt; n; i+=1) {
+					arr.push(text.charCodeAt(i));
+				}
+				//Util.Debug(&#039;&lt;&lt; clientCutText:&#039; + arr);
+				return arr;
+			};
+
+
+
+			//
+			// Public API interface functions
+			//
+
+			that.connect = function(host, port, password, path) {
+				//Util.Debug(&#039;&gt;&gt; connect&#039;);
+
+				rfb_host       = host;
+				rfb_port       = port;
+				rfb_password   = (password !== undefined)   ? password : &#039;&#039;;
+				rfb_path       = (path !== undefined) ? path : &#039;&#039;;
+
+				if ((!rfb_host) || (!rfb_port)) {
+					return fail(&#039;Must set host and port&#039;);
+				}
+
+				updateState(&#039;connect&#039;);
+				//Util.Debug(&#039;&lt;&lt; connect&#039;);
+
+			};
+
+			that.disconnect = function() {
+				//Util.Debug(&#039;&gt;&gt; disconnect&#039;);
+				updateState(&#039;disconnect&#039;, &#039;Disconnecting&#039;);
+				//Util.Debug(&#039;&lt;&lt; disconnect&#039;);
+			};
+
+			that.sendPassword = function(passwd) {
+				rfb_password = passwd;
+				rfb_state = &#039;Authentication&#039;;
+				setTimeout(init_msg, 1);
+			};
+
+			that.sendCtrlAltDel = function() {
+				if (rfb_state !== &#039;normal&#039; || conf.view_only) { return false; }
+				Util.Info(&#039;Sending Ctrl-Alt-Del&#039;);
+				var arr = [];
+				arr = arr.concat(keyEvent(0xFFE3, 1)); // Control
+				arr = arr.concat(keyEvent(0xFFE9, 1)); // Alt
+				arr = arr.concat(keyEvent(0xFFFF, 1)); // Delete
+				arr = arr.concat(keyEvent(0xFFFF, 0)); // Delete
+				arr = arr.concat(keyEvent(0xFFE9, 0)); // Alt
+				arr = arr.concat(keyEvent(0xFFE3, 0)); // Control
+				ws.send(arr);
+			};
+
+			that.xvpOp = function(ver, op) {
+				if (rfb_xvp_ver &lt; ver) { return false; }
+				Util.Info(&#039;Sending XVP operation &#039; + op + &#039; (version &#039; + ver + &#039;)&#039;);
+				ws.send_string(&#039;\xFA\x00&#039; + String.fromCharCode(ver) + String.fromCharCode(op));
+				return true;
+			};
+
+			that.xvpShutdown = function() {
+				return that.xvpOp(1, 2);
+			};
+
+			that.xvpReboot = function() {
+				return that.xvpOp(1, 3);
+			};
+
+			that.xvpReset = function() {
+				return that.xvpOp(1, 4);
+			};
+
+			// Send a key press. If &#039;down&#039; is not specified then send a down key
+			// followed by an up key.
+			that.sendKey = function(code, down) {
+				if (rfb_state !== &#039;normal&#039; || conf.view_only) { return false; }
+				var arr = [];
+				if (typeof down !== &#039;undefined&#039;) {
+					Util.Info(&#039;Sending key code (&#039; + (down ? &#039;down&#039; : &#039;up&#039;) + &#039;): &#039; + code);
+					arr = arr.concat(keyEvent(code, down ? 1 : 0));
+				} else {
+					Util.Info(&#039;Sending key code (down + up): &#039; + code);
+					arr = arr.concat(keyEvent(code, 1));
+					arr = arr.concat(keyEvent(code, 0));
+				}
+				ws.send(arr);
+			};
+
+			that.clipboardPasteFrom = function(text) {
+				if (rfb_state !== &#039;normal&#039;) { return; }
+				//Util.Debug(&#039;&gt;&gt; clipboardPasteFrom: &#039; + text.substr(0,40) + &#039;...&#039;);
+				ws.send(clientCutText(text));
+				//Util.Debug(&#039;&lt;&lt; clipboardPasteFrom&#039;);
+			};
+
+			// Override internal functions for testing
+			that.testMode = function(override_send, data_mode) {
+				test_mode = true;
+				that.recv_message = ws.testMode(override_send, data_mode);
+
+				checkEvents = function () { /* Stub Out */ };
+				that.connect = function(host, port, password) {
+						rfb_host = host;
+						rfb_port = port;
+						rfb_password = password;
+						init_vars();
+						updateState(&#039;ProtocolVersion&#039;, &#039;Starting VNC handshake&#039;);
+					};
+			};
+
+
+			return constructor();  // Return the public API interface
+		};
+	}
+]);</textarea>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="container">
+    <p>.</p>
+  </div>
+</footer>
+
+<script type="text/html" id="complexity-popover-template">
+  <div class="complexity-notice">
+    Complexity : {{ complexity.cyclomatic }} <br>
+    Length : {{ complexity.halstead.length }} <br>
+    Difficulty : {{ complexity.halstead.difficulty.toFixed(2) }} <br>
+    Est # bugs : {{ complexity.halstead.bugs.toFixed(2) }}<br>
+  </div>
+</script>
+
+<script type="text/javascript" src="../../assets/scripts/bundles/core-bundle.js"></script>
+<script type="text/javascript" src="../../assets/scripts/bundles/codemirror.js"></script>
+<script type="text/javascript" src="../../assets/scripts/codemirror.markpopovertext.js"></script>
+<script type="text/javascript" src="report.js"></script>
+<script type="text/javascript" src="report.history.js"></script>
+<script type="text/javascript" src="../../assets/scripts/plato-file.js"></script>
+</body>
+</html>

@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Plato - keyboard.js</title>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="">
+  <meta name="author" content="">
+
+  <!--[if lt IE 9]>
+  <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+
+  <link href="../../assets/css/vendor/morris.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/bootstrap.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/font-awesome.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/codemirror.css" rel="stylesheet">
+  <link href="../../assets/css/plato.css" rel="stylesheet">
+  <link href="../../assets/css/plato-file.css" rel="stylesheet">
+
+</head>
+
+<body>
+
+<div class="navbar navbar-fixed-top">
+  <div class="container">
+    <a class="navbar-brand" href="http://github.com/es-analysis/plato">Plato on Github</a>
+    <ul class="nav navbar-nav">
+      <li>
+        <a href="../../index.html">Report Home</a>
+      </li>
+    </ul>
+  </div>
+</div>
+
+<div class="jumbotron">
+  <div class="container">
+    <h1>keyboard.js</h1>
+  </div>
+</div>
+
+<div class="container aggregate-stats">
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Maintainability <a href="http://blogs.msdn.com/b/codeanalysis/archive/2007/11/20/maintainability-index-range-and-meaning.aspx"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="A value between 0 and 100 that represents the relative ease of maintaining the code. A high value means better maintainability." data-original-title="Maintainability Index"  data-container="body"></i></a></h2>
+      <p class="stat">62.45</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Lines of code <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h2>
+      <p class="stat">562</p>
+    </div>
+  </div>
+  <div class="row historical">
+    <div class="col-md-6">
+      <p id="chart_historical_maint" class="chart"></p>
+    </div>
+    <div class="col-md-6">
+      <p id="chart_historical_sloc" class="chart"></p>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Difficulty  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="The difficulty measure is related to the difficulty of the program to write or understand." data-original-title="Difficulty" data-container="body"></i></a></h2>
+      <p class="stat">75.56</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Estimated Errors  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Halstead's delivered bugs is an estimate for the number of errors in the implementation." data-original-title="Delivered Bugs" data-container="body"></i></a></h2>
+      <p class="stat">4.89</p>
+    </div>
+  </div>
+</div>
+
+<div class="container charts">
+  <div class="row">
+    <h2 class="header">Function weight</h2>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h3 class="chart-header">By Complexity <a href="http://en.wikipedia.org/wiki/Cyclomatic_complexity"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="This metric counts the number of distinct paths through a block of code. Lower values are better." data-original-title="Cyclomatic Complexity" data-container="body"></i></a></h3>
+      <div id="fn-by-complexity" class="stat"></div>
+    </div>
+    <div class="col-md-6">
+      <h3 class="chart-header">By SLOC  <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h3>
+      <div id="fn-by-sloc" class="stat"></div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="row">
+    <textarea id="file-source" class="col-md-12">var keyboard = angular.module(&#039;noVNC.keyboard&#039;, []);
+
+keyboard.factory(&#039;kbdUtil&#039;, [&#039;keysyms&#039;, function(keysyms) {
+  &#039;use strict&#039;;
+
+  function substituteCodepoint(cp) {
+	  // Any Unicode code points which do not have corresponding keysym entries
+	  // can be swapped out for another code point by adding them to this table
+	  var substitutions = {
+		  // {S,s} with comma below -&gt; {S,s} with cedilla
+		  0x218 : 0x15e,
+		  0x219 : 0x15f,
+		  // {T,t} with comma below -&gt; {T,t} with cedilla
+		  0x21a : 0x162,
+		  0x21b : 0x163
+	  };
+
+	  var sub = substitutions[cp];
+	  return sub ? sub : cp;
+  }
+
+  function isMac() {
+	return navigator &amp;&amp; !!(/mac/i).exec(navigator.platform);
+  }
+  function isWindows() {
+	return navigator &amp;&amp; !!(/win/i).exec(navigator.platform);
+  }
+  function isLinux() {
+	return navigator &amp;&amp; !!(/linux/i).exec(navigator.platform);
+  }
+
+  // Return true if a modifier which is not the specified char modifier (and is not shift) is down
+  function hasShortcutModifier(charModifier, currentModifiers) {
+	  var mods = {};
+	  for (var key in currentModifiers) {
+		  if (parseInt(key) !== 0xffe1) {
+			  mods[key] = currentModifiers[key];
+		  }
+	  }
+
+	  var sum = 0;
+	  for (var k in currentModifiers) {
+		  if (mods[k]) {
+			  ++sum;
+		  }
+	  }
+	  if (hasCharModifier(charModifier, mods)) {
+		  return sum &gt; charModifier.length;
+	  }
+	  else {
+		  return sum &gt; 0;
+	  }
+  }
+
+  // Return true if the specified char modifier is currently down
+  function hasCharModifier(charModifier, currentModifiers) {
+	  if (charModifier.length === 0) { return false; }
+
+	  for (var i = 0; i &lt; charModifier.length; ++i) {
+		  if (!currentModifiers[charModifier[i]]) {
+			  return false;
+		  }
+	  }
+	  return true;
+  }
+
+  // Helper object tracking modifier key state
+  // and generates fake key events to compensate if it gets out of sync
+  function ModifierSync(charModifier) {
+	  var ctrl = 0xffe3;
+	  var alt = 0xffe9;
+	  var altGr = 0xfe03;
+	  var shift = 0xffe1;
+	  var meta = 0xffe7;
+
+	  if (!charModifier) {
+		  if (isMac()) {
+			  // on Mac, Option (AKA Alt) is used as a char modifier
+			  charModifier = [alt];
+		  }
+		  else if (isWindows()) {
+			  // on Windows, Ctrl+Alt is used as a char modifier
+			  charModifier = [alt, ctrl];
+		  }
+		  else if (isLinux()) {
+			  // on Linux, AltGr is used as a char modifier
+			  charModifier = [altGr];
+		  }
+		  else {
+			  charModifier = [];
+		  }
+	  }
+
+	  var state = {};
+	  state[ctrl] = false;
+	  state[alt] = false;
+	  state[altGr] = false;
+	  state[shift] = false;
+	  state[meta] = false;
+
+	  function sync(evt, keysym) {
+		  var result = [];
+		  function syncKey(keysym) {
+			  return {keysym: keysyms.lookup(keysym), type: state[keysym] ? &#039;keydown&#039; : &#039;keyup&#039;};
+		  }
+
+		  if (evt.ctrlKey !== undefined &amp;&amp; evt.ctrlKey !== state[ctrl] &amp;&amp; keysym !== ctrl) {
+			  state[ctrl] = evt.ctrlKey;
+			  result.push(syncKey(ctrl));
+		  }
+		  if (evt.altKey !== undefined &amp;&amp; evt.altKey !== state[alt] &amp;&amp; keysym !== alt) {
+			  state[alt] = evt.altKey;
+			  result.push(syncKey(alt));
+		  }
+		  if (evt.altGraphKey !== undefined &amp;&amp; evt.altGraphKey !== state[altGr] &amp;&amp; keysym !== altGr) {
+			  state[altGr] = evt.altGraphKey;
+			  result.push(syncKey(altGr));
+		  }
+		  if (evt.shiftKey !== undefined &amp;&amp; evt.shiftKey !== state[shift] &amp;&amp; keysym !== shift) {
+			  state[shift] = evt.shiftKey;
+			  result.push(syncKey(shift));
+		  }
+		  if (evt.metaKey !== undefined &amp;&amp; evt.metaKey !== state[meta] &amp;&amp; keysym !== meta) {
+			  state[meta] = evt.metaKey;
+			  result.push(syncKey(meta));
+		  }
+		  return result;
+	  }
+	  function syncKeyEvent(evt, down) {
+		  var obj = getKeysym(evt);
+		  var keysym = obj ? obj.keysym : null;
+
+		  // first, apply the event itself, if relevant
+		  if (keysym !== null &amp;&amp; state[keysym] !== undefined) {
+			  state[keysym] = down;
+		  }
+		  return sync(evt, keysym);
+	  }
+
+	  return {
+		  // sync on the appropriate keyboard event
+		  keydown: function(evt) { return syncKeyEvent(evt, true);},
+		  keyup: function(evt) { return syncKeyEvent(evt, false);},
+		  // Call this with a non-keyboard event (such as mouse events) to use its modifier state to synchronize anyway
+		  syncAny: function(evt) { return sync(evt);},
+
+		  // is a shortcut modifier down?
+		  hasShortcutModifier: function() { return hasShortcutModifier(charModifier, state); },
+		  // if a char modifier is down, return the keys it consists of, otherwise return null
+		  activeCharModifier: function() { return hasCharModifier(charModifier, state) ? charModifier : null; }
+	  };
+  }
+
+  // Get a key ID from a keyboard event
+  // May be a string or an integer depending on the available properties
+  function getKey(evt){
+	  if (&#039;keyCode&#039; in evt &amp;&amp; &#039;key&#039; in evt) {
+		  return evt.key + &#039;:&#039; + evt.keyCode;
+	  }
+	  else if (&#039;keyCode&#039; in evt) {
+		  return evt.keyCode;
+	  }
+	  else {
+		  return evt.key;
+	  }
+  }
+
+  // Get the most reliable keysym value we can get from a key event
+  // if char/charCode is available, prefer those, otherwise fall back to key/keyCode/which
+  function getKeysym(evt){
+	  var codepoint;
+	  if (evt.char &amp;&amp; evt.char.length === 1) {
+		  codepoint = evt.char.charCodeAt();
+	  }
+	  else if (evt.charCode) {
+		  codepoint = evt.charCode;
+	  }
+	  else if (evt.keyCode &amp;&amp; evt.type === &#039;keypress&#039;) {
+		  // IE10 stores the char code as keyCode, and has no other useful properties
+		  codepoint = evt.keyCode;
+	  }
+	  if (codepoint) {
+		  var res = keysyms.fromUnicode(substituteCodepoint(codepoint));
+		  if (res) {
+			  return res;
+		  }
+	  }
+	  // we could check evt.key here.
+	  // Legal values are defined in http://www.w3.org/TR/DOM-Level-3-Events/#key-values-list,
+	  // so we &#039;just&#039; need to map them to keysym, but AFAIK this is only available in IE10, which also provides evt.key
+	  // so we don&#039;t *need* it yet
+	  if (evt.keyCode) {
+		  return keysyms.lookup(keysymFromKeyCode(evt.keyCode, evt.shiftKey));
+	  }
+	  if (evt.which) {
+		  return keysyms.lookup(keysymFromKeyCode(evt.which, evt.shiftKey));
+	  }
+	  return null;
+  }
+
+  // Given a keycode, try to predict which keysym it might be.
+  // If the keycode is unknown, null is returned.
+  function keysymFromKeyCode(keycode, shiftPressed) {
+	  if (typeof(keycode) !== &#039;number&#039;) {
+		  return null;
+	  }
+	  // won&#039;t be accurate for azerty
+	  if (keycode &gt;= 0x30 &amp;&amp; keycode &lt;= 0x39) {
+		  return keycode; // digit
+	  }
+	  if (keycode &gt;= 0x41 &amp;&amp; keycode &lt;= 0x5a) {
+		  // remap to lowercase unless shift is down
+		  return shiftPressed ? keycode : keycode + 32; // A-Z
+	  }
+	  if (keycode &gt;= 0x60 &amp;&amp; keycode &lt;= 0x69) {
+		  return 0xffb0 + (keycode - 0x60); // numpad 0-9
+	  }
+
+	  switch(keycode) {
+		  case 0x20: return 0x20; // space
+		  case 0x6a: return 0xffaa; // multiply
+		  case 0x6b: return 0xffab; // add
+		  case 0x6c: return 0xffac; // separator
+		  case 0x6d: return 0xffad; // subtract
+		  case 0x6e: return 0xffae; // decimal
+		  case 0x6f: return 0xffaf; // divide
+		  case 0xbb: return 0x2b; // +
+		  case 0xbc: return 0x2c; // ,
+		  case 0xbd: return 0x2d; // -
+		  case 0xbe: return 0x2e; // .
+	  }
+
+	  return nonCharacterKey({keyCode: keycode});
+  }
+
+  // if the key is a known non-character key (any key which doesn&#039;t generate character data)
+  // return its keysym value. Otherwise return null
+  function nonCharacterKey(evt) {
+	  // evt.key not implemented yet
+	  if (!evt.keyCode) { return null; }
+	  var keycode = evt.keyCode;
+
+	  if (keycode &gt;= 0x70 &amp;&amp; keycode &lt;= 0x87) {
+		  return 0xffbe + keycode - 0x70; // F1-F24
+	  }
+	  switch (keycode) {
+
+		  case 8 : return 0xFF08; // BACKSPACE
+		  case 13 : return 0xFF0D; // ENTER
+
+		  case 9 : return 0xFF09; // TAB
+
+		  case 27 : return 0xFF1B; // ESCAPE
+		  case 46 : return 0xFFFF; // DELETE
+
+		  case 36 : return 0xFF50; // HOME
+		  case 35 : return 0xFF57; // END
+		  case 33 : return 0xFF55; // PAGE_UP
+		  case 34 : return 0xFF56; // PAGE_DOWN
+		  case 45 : return 0xFF63; // INSERT
+
+		  case 37 : return 0xFF51; // LEFT
+		  case 38 : return 0xFF52; // UP
+		  case 39 : return 0xFF53; // RIGHT
+		  case 40 : return 0xFF54; // DOWN
+		  case 16 : return 0xFFE1; // SHIFT
+		  case 17 : return 0xFFE3; // CONTROL
+		  case 18 : return 0xFFE9; // Left ALT (Mac Option)
+
+		  case 224 : return 0xFE07; // Meta
+		  case 225 : return 0xFE03; // AltGr
+		  case 91 : return 0xFFEC; // Super_L (Win Key)
+		  case 92 : return 0xFFED; // Super_R (Win Key)
+		  case 93 : return 0xFF67; // Menu (Win Menu), Mac Command
+		  default: return null;
+	  }
+  }
+  
+  return {
+		hasShortcutModifier : hasShortcutModifier,
+		hasCharModifier :  hasCharModifier,
+		ModifierSync : ModifierSync,
+		getKey : getKey,
+		getKeysym : getKeysym,
+		keysymFromKeyCode : keysymFromKeyCode,
+		nonCharacterKey : nonCharacterKey,
+		substituteCodepoint : substituteCodepoint
+  };
+}]);
+
+
+// Takes a DOM keyboard event and:
+// - determines which keysym it represents
+// - determines a keyId  identifying the key that was pressed (corresponding to the key/keyCode properties on the DOM event)
+// - synthesizes events to synchronize modifier key state between which modifiers are actually down, and which we thought were down
+// - marks each event with an &#039;escape&#039; property if a modifier was down which should be &#039;escaped&#039;
+// - generates a &#039;stall&#039; event in cases where it might be necessary to wait and see if a keypress event follows a keydown
+// This information is collected into an object which is passed to the next() function. (one call per event)
+keyboard.factory(&#039;KeyEventDecoder&#039;, [&#039;kbdUtil&#039;, function(kbdUtil) {
+  &#039;use strict&#039;;
+
+  return function(modifierState, next) {
+		function sendAll(evts) {
+			for (var i = 0; i &lt; evts.length; ++i) {
+				next(evts[i]);
+			}
+		}
+		function process(evt, type) {
+			var result = {type: type};
+			var keyId = kbdUtil.getKey(evt);
+			if (keyId) {
+				result.keyId = keyId;
+			}
+
+			var keysym = kbdUtil.getKeysym(evt);
+
+			var hasModifier = modifierState.hasShortcutModifier() || !!modifierState.activeCharModifier();
+			// Is this a case where we have to decide on the keysym right away, rather than waiting for the keypress?
+			// &#039;special&#039; keys like enter, tab or backspace don&#039;t send keypress events,
+			// and some browsers don&#039;t send keypresses at all if a modifier is down
+			if (keysym &amp;&amp; (type !== &#039;keydown&#039; || kbdUtil.nonCharacterKey(evt) || hasModifier)) {
+				result.keysym = keysym;
+			}
+
+			var isShift = evt.keyCode === 0x10 || evt.key === &#039;Shift&#039;;
+
+			// Should we prevent the browser from handling the event?
+			// Doing so on a keydown (in most browsers) prevents keypress from being generated
+			// so only do that if we have to.
+			var suppress = !isShift &amp;&amp; (type !== &#039;keydown&#039; || modifierState.hasShortcutModifier() || !!kbdUtil.nonCharacterKey(evt));
+
+			// If a char modifier is down on a keydown, we need to insert a stall,
+			// so VerifyCharModifier knows to wait and see if a keypress is comnig
+			var stall = type === &#039;keydown&#039; &amp;&amp; modifierState.activeCharModifier() &amp;&amp; !kbdUtil.nonCharacterKey(evt);
+
+			// if a char modifier is pressed, get the keys it consists of (on Windows, AltGr is equivalent to Ctrl+Alt)
+			var active = modifierState.activeCharModifier();
+
+			// If we have a char modifier down, and we&#039;re able to determine a keysym reliably
+			// then (a) we know to treat the modifier as a char modifier,
+			// and (b) we&#039;ll have to &#039;escape&#039; the modifier to undo the modifier when sending the char.
+			if (active &amp;&amp; keysym) {
+				var isCharModifier = false;
+				for (var i  = 0; i &lt; active.length; ++i) {
+					if (active[i] === keysym.keysym) {
+						isCharModifier = true;
+					}
+				}
+				if (type === &#039;keypress&#039; &amp;&amp; !isCharModifier) {
+					result.escape = modifierState.activeCharModifier();
+				}
+			}
+
+			if (stall) {
+				// insert a fake &#039;stall&#039; event
+				next({type: &#039;stall&#039;});
+			}
+			next(result);
+
+			return suppress;
+		}
+
+		return {
+			keydown: function(evt) {
+				sendAll(modifierState.keydown(evt));
+				return process(evt, &#039;keydown&#039;);
+			},
+			keypress: function(evt) {
+				return process(evt, &#039;keypress&#039;);
+			},
+			keyup: function(evt) {
+				sendAll(modifierState.keyup(evt));
+				return process(evt, &#039;keyup&#039;);
+			},
+			syncModifiers: function(evt) {
+				sendAll(modifierState.syncAny(evt));
+			},
+			releaseAll: function() { next({type: &#039;releaseall&#039;}); }
+		};
+  };
+}]);
+
+// Combines keydown and keypress events where necessary to handle char modifiers.
+// On some OS&#039;es, a char modifier is sometimes used as a shortcut modifier.
+// For example, on Windows, AltGr is synonymous with Ctrl-Alt. On a Danish keyboard layout, AltGr-2 yields a @, but Ctrl-Alt-D does nothing
+// so when used with the &#039;2&#039; key, Ctrl-Alt counts as a char modifier (and should be escaped), but when used with &#039;D&#039;, it does not.
+// The only way we can distinguish these cases is to wait and see if a keypress event arrives
+// When we receive a &#039;stall&#039; event, wait a few ms before processing the next keydown. If a keypress has also arrived, merge the two
+keyboard.factory(&#039;VerifyCharModifier&#039;, function() {
+	&#039;use strict&#039;;
+
+	return function(next) {
+		var queue = [];
+		var timer = null;
+
+		var loopProcess = function() {
+			timer = setTimeout(function() {
+				clearTimeout(timer);
+				timer = null;
+				process();
+			}, 5);
+		};
+
+		function process() {
+			if (timer) {
+				return;
+			}
+
+			while (queue.length !== 0) {
+				var cur = queue[0];
+				queue = queue.splice(1);
+				switch (cur.type) {
+					case &#039;stall&#039;:
+						// insert a delay before processing available events.
+						loopProcess();
+						return;
+					case &#039;keydown&#039;:
+						// is the next element a keypress? Then we should merge the two
+						if (queue.length !== 0 &amp;&amp; queue[0].type === &#039;keypress&#039;) {
+							// Firefox sends keypress even when no char is generated.
+							// so, if keypress keysym is the same as we&#039;d have guessed from keydown,
+							// the modifier didn&#039;t have any effect, and should not be escaped
+							if (queue[0].escape &amp;&amp; (!cur.keysym || cur.keysym.keysym !== queue[0].keysym.keysym)) {
+								cur.escape = queue[0].escape;
+							}
+							cur.keysym = queue[0].keysym;
+							queue = queue.splice(1);
+						}
+						break;
+				}
+
+				// swallow stall events, and pass all others to the next stage
+				if (cur.type !== &#039;stall&#039;) {
+					next(cur);
+				}
+			}
+		}
+
+		return function(evt) {
+			queue.push(evt);
+			process();
+		};
+	};
+});
+
+// Keeps track of which keys we (and the server) believe are down
+// When a keyup is received, match it against this list, to determine the corresponding keysym(s)
+// in some cases, a single key may produce multiple keysyms, so the corresponding keyup event must release all of these chars
+// key repeat events should be merged into a single entry.
+// Because we can&#039;t always identify which entry a keydown or keyup event corresponds to, we sometimes have to guess
+keyboard.factory(&#039;TrackKeyState&#039;, function() {
+	&#039;use strict&#039;;
+
+	return function(next) {
+
+		var state = [];
+
+		return function (evt) {
+			var last = state.length !== 0 ? state[state.length-1] : null;
+			
+			var makeClone = function() {
+				function Clone(){}
+				return function (obj) { Clone.prototype=obj; return new Clone(); };
+			};
+
+			switch (evt.type) {
+				case &#039;keydown&#039;:
+					// insert a new entry if last seen key was different.
+					if (!last || !evt.keyId || last.keyId !== evt.keyId) {
+						last = {keyId: evt.keyId, keysyms: {}};
+						state.push(last);
+					}
+
+					if (evt.keysym) {
+						// make sure last event contains this keysym (a single &#039;logical&#039; keyevent
+						// can cause multiple key events to be sent to the VNC server)
+						last.keysyms[evt.keysym.keysym] = evt.keysym;
+						last.ignoreKeyPress = true;
+						next(evt);
+					}
+					break;
+				case &#039;keypress&#039;:
+					if (!last) {
+						last = {keyId: evt.keyId, keysyms: {}};
+						state.push(last);
+					}
+
+					if (!evt.keysym) {
+						console.log(&#039;keypress with no keysym:&#039;, evt);
+					}
+
+					// If we didn&#039;t expect a keypress, and already sent a keydown to the VNC server
+					// based on the keydown, make sure to skip this event.
+					if (evt.keysym &amp;&amp; !last.ignoreKeyPress) {
+						last.keysyms[evt.keysym.keysym] = evt.keysym;
+						evt.type = &#039;keydown&#039;;
+						next(evt);
+					}
+					break;
+				case &#039;keyup&#039;:
+					if (state.length === 0) {
+						return;
+					}
+					var idx = null;
+					// do we have a matching key tracked as being down?
+					for (var i = 0; i !== state.length; ++i) {
+						if (state[i].keyId === evt.keyId) {
+							idx = i;
+							break;
+						}
+					}
+					// if we couldn&#039;t find a match (it happens), assume it was the last key pressed
+					if (idx === null) {
+						idx = state.length - 1;
+					}
+
+					var item = state.splice(idx, 1)[0];
+					// for each keysym tracked by this key entry, clone the current event and override the keysym
+					for (var key in item.keysyms) {
+						var clone = makeClone();
+						var out = clone(evt);
+						out.keysym = item.keysyms[key];
+						next(out);
+					}
+					break;
+				case &#039;releaseall&#039;:
+					for (var a = 0; a &lt; state.length; ++a) {
+						for (var _key in state[a].keysyms) {
+							var keysym = state[a].keysyms[_key];
+							next({keyId: 0, keysym: keysym, type: &#039;keyup&#039;});
+						}
+					}
+					state = [];
+					break;
+			}
+		};
+	};
+});
+
+// Handles &#039;escaping&#039; of modifiers: if a char modifier is used to produce a keysym (such as AltGr-2 to generate an @),
+// then the modifier must be &#039;undone&#039; before sending the @, and &#039;redone&#039; afterwards.
+keyboard.factory(&#039;EscapeModifiers&#039;, function () {
+	&#039;use strict&#039;;
+	return function(next) {
+		return function(evt) {
+			if (evt.type !== &#039;keydown&#039; || evt.escape === undefined) {
+				next(evt);
+				return;
+			}
+			// undo modifiers
+			for (var i = 0; i &lt; evt.escape.length; ++i) {
+				next({type: &#039;keyup&#039;, keyId: 0, keysym: keysyms.lookup(evt.escape[i])});
+			}
+			// send the character event
+			next(evt);
+			// redo modifiers
+			for (var a = 0; a &lt; evt.escape.length; ++a) {
+				next({type: &#039;keydown&#039;, keyId: 0, keysym: keysyms.lookup(evt.escape[a])});
+			}
+		};
+	};
+});</textarea>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="container">
+    <p>.</p>
+  </div>
+</footer>
+
+<script type="text/html" id="complexity-popover-template">
+  <div class="complexity-notice">
+    Complexity : {{ complexity.cyclomatic }} <br>
+    Length : {{ complexity.halstead.length }} <br>
+    Difficulty : {{ complexity.halstead.difficulty.toFixed(2) }} <br>
+    Est # bugs : {{ complexity.halstead.bugs.toFixed(2) }}<br>
+  </div>
+</script>
+
+<script type="text/javascript" src="../../assets/scripts/bundles/core-bundle.js"></script>
+<script type="text/javascript" src="../../assets/scripts/bundles/codemirror.js"></script>
+<script type="text/javascript" src="../../assets/scripts/codemirror.markpopovertext.js"></script>
+<script type="text/javascript" src="report.js"></script>
+<script type="text/javascript" src="report.history.js"></script>
+<script type="text/javascript" src="../../assets/scripts/plato-file.js"></script>
+</body>
+</html>

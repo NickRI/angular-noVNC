@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Plato - ui.js</title>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="">
+  <meta name="author" content="">
+
+  <!--[if lt IE 9]>
+  <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+
+  <link href="../../assets/css/vendor/morris.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/bootstrap.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/font-awesome.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/codemirror.css" rel="stylesheet">
+  <link href="../../assets/css/plato.css" rel="stylesheet">
+  <link href="../../assets/css/plato-file.css" rel="stylesheet">
+
+</head>
+
+<body>
+
+<div class="navbar navbar-fixed-top">
+  <div class="container">
+    <a class="navbar-brand" href="http://github.com/es-analysis/plato">Plato on Github</a>
+    <ul class="nav navbar-nav">
+      <li>
+        <a href="../../index.html">Report Home</a>
+      </li>
+    </ul>
+  </div>
+</div>
+
+<div class="jumbotron">
+  <div class="container">
+    <h1>ui.js</h1>
+  </div>
+</div>
+
+<div class="container aggregate-stats">
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Maintainability <a href="http://blogs.msdn.com/b/codeanalysis/archive/2007/11/20/maintainability-index-range-and-meaning.aspx"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="A value between 0 and 100 that represents the relative ease of maintaining the code. A high value means better maintainability." data-original-title="Maintainability Index"  data-container="body"></i></a></h2>
+      <p class="stat">66.32</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Lines of code <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h2>
+      <p class="stat">466</p>
+    </div>
+  </div>
+  <div class="row historical">
+    <div class="col-md-6">
+      <p id="chart_historical_maint" class="chart"></p>
+    </div>
+    <div class="col-md-6">
+      <p id="chart_historical_sloc" class="chart"></p>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Difficulty  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="The difficulty measure is related to the difficulty of the program to write or understand." data-original-title="Difficulty" data-container="body"></i></a></h2>
+      <p class="stat">62.70</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Estimated Errors  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Halstead's delivered bugs is an estimate for the number of errors in the implementation." data-original-title="Delivered Bugs" data-container="body"></i></a></h2>
+      <p class="stat">4.44</p>
+    </div>
+  </div>
+</div>
+
+<div class="container charts">
+  <div class="row">
+    <h2 class="header">Function weight</h2>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h3 class="chart-header">By Complexity <a href="http://en.wikipedia.org/wiki/Cyclomatic_complexity"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="This metric counts the number of distinct paths through a block of code. Lower values are better." data-original-title="Cyclomatic Complexity" data-container="body"></i></a></h3>
+      <div id="fn-by-complexity" class="stat"></div>
+    </div>
+    <div class="col-md-6">
+      <h3 class="chart-header">By SLOC  <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h3>
+      <div id="fn-by-sloc" class="stat"></div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="row">
+    <textarea id="file-source" class="col-md-12">angular.module(&#039;noVNC&#039;, [&#039;noVNC.util&#039;, &#039;noVNC.rfb&#039;]).directive(&#039;vnc&#039;, [&#039;WebUtil&#039;, &#039;RFB&#039;, &#039;Util&#039;, &#039;$timeout&#039;, function(WebUtil, RFB, Util, $timeout) {
+	&#039;use strict&#039;;
+	function newInterface() {
+		var UI = {
+			canvas: null,
+			_settings : {},
+			rfb_state : &#039;loaded&#039;,
+			connected : false,
+			isTouchDevice: false,
+
+			// Setup rfb object, load settings from browser storage, then call
+			// UI.init to setup the UI/menus
+			load: function (callback) {
+				WebUtil.initSettings(UI.start, callback);
+			},
+
+			// Render default UI and initialize settings menu
+			start: function(callback) {
+				UI.isTouchDevice = &#039;ontouchstart&#039; in document.documentElement;
+				// Settings with immediate effects
+				UI.setSetting(&#039;logging&#039;, &#039;warn&#039;, true);
+				WebUtil.init_logging(UI.getSetting(&#039;logging&#039;));
+
+				// if port == 80 (or 443) then it won&#039;t be present and should be
+				// set manually
+				var port = window.location.port;
+				if (!port) {
+					if (window.location.protocol.substring(0,5) === &#039;https&#039;) {
+						port = 443;
+					}
+					else if (window.location.protocol.substring(0,4) === &#039;http&#039;) {
+						port = 80;
+					}
+				}
+
+				/* Populate the controls if defaults are provided in the URL */
+				UI.setSetting(&#039;host&#039;, window.location.hostname, true);
+				UI.setSetting(&#039;port&#039;, port, true);
+				UI.setSetting(&#039;password&#039;, &#039;&#039;, true);
+				UI.setSetting(&#039;encrypt&#039;, (window.location.protocol === &#039;https:&#039;), true);
+				UI.setSetting(&#039;true_color&#039;, true, true);
+				UI.setSetting(&#039;cursor&#039;, !UI.isTouchDevice, true);
+				UI.setSetting(&#039;shared&#039;, true, true);
+				UI.setSetting(&#039;view_only&#039;, false, true);
+				UI.setSetting(&#039;path&#039;, &#039;websockify&#039;, true);
+				UI.setSetting(&#039;width&#039;, false, true);
+				UI.setSetting(&#039;height&#039;, false, true);
+				UI.setSetting(&#039;repeaterID&#039;, &#039;&#039;, true);
+
+				UI.rfb = new RFB({
+					&#039;target&#039;: UI.canvas,
+					&#039;onUpdateState&#039;: UI.updateState,
+					&#039;onXvpInit&#039;: UI.updateXvpVisualState,
+					&#039;onClipboard&#039;: UI.clipReceive,
+					&#039;onDesktopName&#039;: UI.updateDocumentTitle,
+					&#039;onFBResize&#039;: UI.FBResize
+				});
+
+				// Show mouse selector buttons on touch screen devices
+				// if (UI.isTouchDevice) {
+				// 	// Remove the address bar
+				// 	setTimeout(function() { window.scrollTo(0, 1); }, 100);
+				// 	UI.setSetting(&#039;clip&#039;, true);
+				// } else {
+				UI.setSetting(&#039;clip&#039;, false);
+				// }
+
+				UI.setViewClip();
+				Util.addEvent(window, &#039;resize&#039;, UI.setViewClip);
+
+				Util.addEvent(window, &#039;beforeunload&#039;, function () {
+					if (UI.rfb_state === &#039;normal&#039;) {
+						return &#039;You are currently connected.&#039;;
+					}
+				});
+
+				// Add mouse event click/focus/blur event handlers to the UI
+
+				if (typeof callback === &#039;function&#039;) {
+					callback(UI.rfb);
+				}
+			},
+
+			FBResize: function() {},
+			updateState: function() {},
+
+			// Read form control compatible setting from cookie
+			getSetting: function(name) {
+				return UI._settings[name];
+			},
+
+			// Save control setting to cookie
+			setSetting: function(name, value, ifNotExist) {
+				if (typeof (value) !== &#039;undefined&#039;) {
+					if (ifNotExist) {
+						if (!(name in UI._settings)) {
+							UI._settings[name] = value;
+						}
+					} else {
+						UI._settings[name] = value;
+					}
+				} else if (typeof name === &#039;object&#039;) {
+					UI._settings = name;
+				}
+			},
+
+			sendCtrlAltDel: function() {
+				UI.rfb.sendCtrlAltDel();
+			},
+
+			xvpShutdown: function() {
+				UI.rfb.xvpShutdown();
+			},
+
+			xvpReboot: function() {
+				UI.rfb.xvpReboot();
+			},
+
+			xvpReset: function() {
+				UI.rfb.xvpReset();
+			},
+
+			connect: function() {
+				var host, port, password, path;
+
+				host = UI.getSetting(&#039;host&#039;);
+				port = UI.getSetting(&#039;port&#039;);
+				password = UI.getSetting(&#039;password&#039;);
+				path = UI.getSetting(&#039;path&#039;);
+
+				if ((!host) || (!port)) {
+					throw(&#039;Must set host and port&#039;);
+				}
+
+				UI.rfb.set_encrypt(UI.getSetting(&#039;encrypt&#039;));
+				UI.rfb.set_true_color(UI.getSetting(&#039;true_color&#039;));
+				UI.rfb.set_local_cursor(UI.getSetting(&#039;cursor&#039;));
+				UI.rfb.set_shared(UI.getSetting(&#039;shared&#039;));
+				UI.rfb.set_view_only(UI.getSetting(&#039;view_only&#039;));
+				UI.rfb.set_repeaterID(UI.getSetting(&#039;repeaterID&#039;));
+
+
+				UI.rfb.connect(host, port, password, path);
+			},
+
+
+			disconnect: function() {
+				UI.rfb.get_display().resizeAndScale(0, 0, 1);
+				UI.rfb.disconnect();
+			},
+
+			reconect: function() {
+				UI.disconnect();
+				setTimeout(function() {
+					UI.connect();
+				}, 250);
+			},
+
+			displayBlur: function() {
+				UI.rfb.get_keyboard().set_focused(false);
+				UI.rfb.get_mouse().set_focused(false);
+			},
+
+			displayFocus: function() {
+				UI.rfb.get_keyboard().set_focused(true);
+				UI.rfb.get_mouse().set_focused(true);
+			},
+
+			clipClear: function() {
+				UI.rfb.clipboardPasteFrom(&#039;&#039;);
+			},
+
+			clipSend: function(text) {
+				Util.Debug(&#039;&gt;&gt; UI.clipSend: &#039; + text.substr(0,40) + &#039;...&#039;);
+				UI.rfb.clipboardPasteFrom(text);
+				Util.Debug(&#039;&lt;&lt; UI.clipSend&#039;);
+			},
+
+
+			// Enable/disable and configure viewport clipping
+			setViewClip: function(clip) {
+				var display, cur_clip, pos, new_w, new_h;
+
+
+				if (UI.rfb) {
+					display = UI.rfb.get_display();
+				} else {
+					return;
+				}
+
+				cur_clip = display.get_viewport();
+
+				if (typeof(clip) !== &#039;boolean&#039;) {
+					// Use current setting
+					clip = UI.getSetting(&#039;clip&#039;);
+				}
+
+
+				if (!clip &amp;&amp; cur_clip) {
+					// Turn clipping off
+					display.set_viewport(false);
+					UI.canvas.style.position = &#039;static&#039;;
+					display.viewportChange();
+				}
+
+				if (UI.getSetting(&#039;clip&#039;)) {
+					// If clipping, update clipping settings
+					UI.canvas.style.position = &#039;absolute&#039;;
+					pos = Util.getPosition(UI.canvas);
+					new_w = window.innerWidth - pos.x;
+					new_h = window.innerHeight - pos.y;
+					display.set_viewport(true);
+					display.viewportChange(0, 0, new_w, new_h);
+				}
+			},
+		};
+		return UI;
+	}
+
+	return {
+		restrict: &#039;E&#039;,
+		template: &#039;&lt;canvas&gt;&lt;/canvas&gt;&#039;,
+		scope: {
+			host        : &#039;@&#039;,
+			port        : &#039;@&#039;,
+			password    : &#039;@&#039;,
+			path				: &#039;@&#039;,
+			viewOnly    : &#039;=&#039;,
+			trueColor   : &#039;=&#039;,
+			isConnected : &#039;=&#039;,
+			display     : &#039;=&#039;,
+			style       : &#039;=&#039;,
+			states      : &#039;=&#039;,
+			logging     : &#039;=&#039;,
+		},
+		link: function(scope, iElement) {
+			var Interface = newInterface();
+
+			Interface.canvas = iElement[0].childNodes[0];
+			Interface.states = scope.states;
+
+			scope.$watch(&#039;host&#039;, function(host) {
+				Interface.setSetting(&#039;host&#039;, host);
+				if (Interface.connected) {
+					Interface.reconect();
+				}
+			});
+
+			scope.$watch(&#039;port&#039;, function(port) {
+				Interface.setSetting(&#039;port&#039;, port);
+				if (Interface.connected) {
+					Interface.reconect();
+				}
+			});
+
+			scope.$watch(&#039;password&#039;, function(password) {
+				Interface.setSetting(&#039;password&#039;, password);
+				if (Interface.connected) {
+					Interface.reconect();
+				}
+			});
+
+			scope.$watch(&#039;path&#039;, function(path) {
+				Interface.setSetting(&#039;path&#039;, path);
+				if (Interface.connected) {
+					Interface.reconect();
+				}
+			});
+
+			scope.$watch(&#039;viewOnly&#039;, function(viewOnly) {
+				if (typeof viewOnly === &#039;boolean&#039;) {
+					Interface.setSetting(&#039;view_only&#039;, viewOnly);
+					Interface.rfb.set_view_only(viewOnly);
+				}
+			});
+
+			scope.$watch(&#039;logging&#039;, function(logging) {
+				Interface.setSetting(&#039;logging&#039;, logging);
+				WebUtil.init_logging(Interface.getSetting(&#039;logging&#039;));
+			});
+
+			scope.$watch(&#039;trueColor&#039;, function(trueColor) {
+				if (typeof trueColor === &#039;boolean&#039;) {
+					Interface.setSetting(&#039;true_color&#039;, trueColor);
+					if (Interface.connected) {
+						Interface.reconect();
+					}
+				}
+			});
+
+			Interface.updateState = function (rfb, state, oldstate, msg) {
+				Interface.rfb_state = state;
+
+				if (scope.states) {
+					$timeout(function() {
+						scope.states.push({ status: state, msg: msg });
+					}, 0);
+				}
+
+				switch (state) {
+					case &#039;failed&#039;:
+					case &#039;fatal&#039;:
+						Interface.connected = false;
+						break;
+					case &#039;normal&#039;:
+						Interface.connected = true;
+						break;
+					case &#039;disconnected&#039;:
+						Interface.connected = false;
+						break;
+					case &#039;loaded&#039;:
+						// klass = &#039;noVNC_status_normal&#039;;
+						break;
+					case &#039;password&#039;:
+						// UI.toggleConnectPanel();
+						// klass = &#039;noVNC_status_warn&#039;;
+						break;
+					default:
+						// klass = &#039;noVNC_status_warn&#039;;
+						break;
+				}
+			};
+
+			Interface.FBResize = function(rfb, width, height) {
+				var display = scope.display;
+				rfb.get_display().resize(width, height);
+				if (display) {
+
+					if (display.scale) {
+						if (display.width &amp;&amp; display.height) {
+							rfb.get_display().resizeAndScale(display.width, display.height, display.scale);
+						} else {
+							if (display.width) {
+								rfb.get_display().resizeAndScale(display.width, height, display.scale);
+							} else if (display.height) {
+								rfb.get_display().resizeAndScale(width, display.height, display.scale);
+							} else {
+								rfb.get_display().resizeAndScale(width, height, display.scale);
+							}
+						}
+						display.scale = rfb.get_display().get_scale();
+					}
+
+					if (display.fitTo) {
+						switch (display.fitTo) {
+							case &#039;width&#039;:
+								rfb.get_display().resizeAndScale(width, height, 1*(display.width/width));
+								break;
+							case &#039;height&#039;:
+								rfb.get_display().resizeAndScale(width, height, 1*(display.height/height));
+								break;
+							case &#039;scale&#039;:
+								rfb.get_display().resizeAndScale(width, height, display.scale);
+								break;
+						}
+					}
+
+					if (display.fullScreen) {
+						var isKeyboardAvailbleOnFullScreen = (typeof Element !== &#039;undefined&#039; &amp;&amp; &#039;ALLOW_KEYBOARD_INPUT&#039; in Element) &amp;&amp;
+							Element.ALLOW_KEYBOARD_INPUT;
+
+						var element = Interface.canvas;
+						if(element.requestFullScreen) {
+							element.requestFullScreen();
+						} else if(element.mozRequestFullScreen) {
+							element.mozRequestFullScreen();
+						} else if(element.webkitRequestFullscreen) {
+							if (/Version\/[\d]{1,2}(\.[\d]{1,2}){1}(\.(\d){1,2}){0,1} Safari/.test(navigator.userAgent)) {
+								element.webkitRequestFullscreen();
+							} else {
+								element.webkitRequestFullscreen(isKeyboardAvailbleOnFullScreen);
+							}
+						} else if (element.msRequestFullscreen) {
+							element.msRequestFullscreen();
+						}
+
+						Interface.canvas.style.border = &#039;1px solid grey&#039;;
+
+						rfb.get_display().resizeAndScale(width, height, 1);
+
+					} else {
+						if(document.cancelFullScreen) {
+							document.cancelFullScreen();
+						} else if(document.mozCancelFullScreen) {
+							document.mozCancelFullScreen();
+						} else if(document.webkitExitFullscreen) {
+							document.webkitExitFullscreen();
+						} else if (document.msExitFullscreen) {
+							document.msExitFullscreen();
+						}
+
+						Interface.canvas.style.border = (scope.style ? scope.style.border || &#039;none&#039;: &#039;none&#039;);
+					}
+
+				}
+			};
+
+			document.addEventListener(&#039;fullscreenchange&#039;, function () {
+				scope.$apply(function() {
+					if (scope.display &amp;&amp; scope.display.fullScreen) {
+						scope.display.fullScreen = document.fullscreen;
+					}
+				});
+			}, false);
+
+			document.addEventListener(&#039;mozfullscreenchange&#039;, function () {
+				scope.$apply(function() {
+					if (scope.display &amp;&amp; scope.display.fullScreen) {
+						scope.display.fullScreen = document.mozFullScreen;
+					}
+				});
+			}, false);
+
+			document.addEventListener(&#039;webkitfullscreenchange&#039;, function () {
+				scope.$apply(function() {
+					if (scope.display &amp;&amp; scope.display.fullScreen) {
+						scope.display.fullScreen = document.webkitIsFullScreen;
+					}
+				});
+			}, false);
+
+			document.addEventListener(&#039;msfullscreenchange&#039;, function () {
+				scope.$apply(function() {
+					if (scope.display &amp;&amp; scope.display.fullScreen) {
+						scope.display.fullScreen = document.msFullscreenElement;
+					}
+				});
+			}, false);
+
+			scope.$watch(&#039;display&#039;, function(display) {
+				if (display) {
+					Interface.FBResize(
+						Interface.rfb,
+						Interface.rfb.get_display().get_width(),
+						Interface.rfb.get_display().get_height()
+					);
+				}
+			}, true);
+
+			scope.$watch(&#039;style&#039;, function(style) {
+				for(var key in style) {
+					Interface.canvas.style[key] = style[key];
+				}
+			}, true);
+
+			scope.$watch(&#039;isConnected&#039;, function(isConnected) {
+				if (typeof isConnected === &#039;boolean&#039;) {
+					if (!isConnected) {
+						Interface.disconnect();
+					} else {
+						Interface.connect();
+					}
+				}
+			});
+
+			scope.$on(&#039;$destroy&#039;, function() {
+				if (scope.isConnected) {
+					Interface.disconnect();
+				}
+			});
+
+			Interface.load();
+		}
+	};
+
+}]);</textarea>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="container">
+    <p>.</p>
+  </div>
+</footer>
+
+<script type="text/html" id="complexity-popover-template">
+  <div class="complexity-notice">
+    Complexity : {{ complexity.cyclomatic }} <br>
+    Length : {{ complexity.halstead.length }} <br>
+    Difficulty : {{ complexity.halstead.difficulty.toFixed(2) }} <br>
+    Est # bugs : {{ complexity.halstead.bugs.toFixed(2) }}<br>
+  </div>
+</script>
+
+<script type="text/javascript" src="../../assets/scripts/bundles/core-bundle.js"></script>
+<script type="text/javascript" src="../../assets/scripts/bundles/codemirror.js"></script>
+<script type="text/javascript" src="../../assets/scripts/codemirror.markpopovertext.js"></script>
+<script type="text/javascript" src="report.js"></script>
+<script type="text/javascript" src="report.history.js"></script>
+<script type="text/javascript" src="../../assets/scripts/plato-file.js"></script>
+</body>
+</html>

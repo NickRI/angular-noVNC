@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Plato - websock.js</title>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="">
+  <meta name="author" content="">
+
+  <!--[if lt IE 9]>
+  <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+
+  <link href="../../assets/css/vendor/morris.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/bootstrap.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/font-awesome.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/codemirror.css" rel="stylesheet">
+  <link href="../../assets/css/plato.css" rel="stylesheet">
+  <link href="../../assets/css/plato-file.css" rel="stylesheet">
+
+</head>
+
+<body>
+
+<div class="navbar navbar-fixed-top">
+  <div class="container">
+    <a class="navbar-brand" href="http://github.com/es-analysis/plato">Plato on Github</a>
+    <ul class="nav navbar-nav">
+      <li>
+        <a href="../../index.html">Report Home</a>
+      </li>
+    </ul>
+  </div>
+</div>
+
+<div class="jumbotron">
+  <div class="container">
+    <h1>websock.js</h1>
+  </div>
+</div>
+
+<div class="container aggregate-stats">
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Maintainability <a href="http://blogs.msdn.com/b/codeanalysis/archive/2007/11/20/maintainability-index-range-and-meaning.aspx"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="A value between 0 and 100 that represents the relative ease of maintaining the code. A high value means better maintainability." data-original-title="Maintainability Index"  data-container="body"></i></a></h2>
+      <p class="stat">68.70</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Lines of code <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h2>
+      <p class="stat">421</p>
+    </div>
+  </div>
+  <div class="row historical">
+    <div class="col-md-6">
+      <p id="chart_historical_maint" class="chart"></p>
+    </div>
+    <div class="col-md-6">
+      <p id="chart_historical_sloc" class="chart"></p>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Difficulty  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="The difficulty measure is related to the difficulty of the program to write or understand." data-original-title="Difficulty" data-container="body"></i></a></h2>
+      <p class="stat">54.43</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Estimated Errors  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Halstead's delivered bugs is an estimate for the number of errors in the implementation." data-original-title="Delivered Bugs" data-container="body"></i></a></h2>
+      <p class="stat">2.87</p>
+    </div>
+  </div>
+</div>
+
+<div class="container charts">
+  <div class="row">
+    <h2 class="header">Function weight</h2>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h3 class="chart-header">By Complexity <a href="http://en.wikipedia.org/wiki/Cyclomatic_complexity"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="This metric counts the number of distinct paths through a block of code. Lower values are better." data-original-title="Cyclomatic Complexity" data-container="body"></i></a></h3>
+      <div id="fn-by-complexity" class="stat"></div>
+    </div>
+    <div class="col-md-6">
+      <h3 class="chart-header">By SLOC  <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h3>
+      <div id="fn-by-sloc" class="stat"></div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="row">
+    <textarea id="file-source" class="col-md-12">var util = angular.module(&#039;noVNC.util&#039;);
+/*
+ * Websock: high-performance binary WebSockets
+ * Copyright (C) 2012 Joel Martin
+ * Licensed under MPL 2.0 (see LICENSE.txt)
+ *
+ * Websock is similar to the standard WebSocket object but Websock
+ * enables communication with raw TCP sockets (i.e. the binary stream)
+ * via websockify. This is accomplished by base64 encoding the data
+ * stream between Websock and websockify.
+ *
+ * Websock has built-in receive queue buffering; the message event
+ * does not contain actual data but is simply a notification that
+ * there is new data available. Several rQ* methods are available to
+ * read binary data off of the receive queue.
+ */
+
+
+// Load Flash WebSocket emulator if needed
+
+// To force WebSocket emulator even when native WebSocket available
+//window.WEB_SOCKET_FORCE_FLASH = true;
+// To enable WebSocket emulator debug:
+//window.WEB_SOCKET_DEBUG=1;
+
+
+util.factory(&#039;Websock&#039;, [&#039;Util&#039;, function (Util) {
+	&#039;use strict&#039;;
+	
+	if (window.WebSocket &amp;&amp; !window.WEB_SOCKET_FORCE_FLASH) {
+		window.Websock_native = true;
+	} else if (window.MozWebSocket &amp;&amp; !window.WEB_SOCKET_FORCE_FLASH) {
+		window.Websock_native = true;
+		window.WebSocket = window.MozWebSocket;
+	} else {
+		/* no builtin WebSocket so load web_socket.js */
+
+		Websock_native = false;
+		(function () {
+			window.WEB_SOCKET_SWF_LOCATION = Util.get_include_uri() +
+						&#039;web-socket-js/WebSocketMain.swf&#039;;
+			if (Util.Engine.trident) {
+				Util.Debug(&#039;Forcing uncached load of WebSocketMain.swf&#039;);
+				window.WEB_SOCKET_SWF_LOCATION += &#039;?&#039; + Math.random();
+			}
+			Util.load_scripts([&#039;web-socket-js/swfobject.js&#039;,
+							   &#039;web-socket-js/web_socket.js&#039;]);
+		}());
+	}
+
+	return function() {
+		var api = {},         // Public API
+			websocket = null, // WebSocket object
+			mode = &#039;base64&#039;,  // Current WebSocket mode: &#039;binary&#039;, &#039;base64&#039;
+			rQ = [],          // Receive queue
+			rQi = 0,          // Receive queue index
+			rQmax = 10000,    // Max receive queue size before compacting
+			sQ = [],          // Send queue
+
+			eventHandlers = {
+				&#039;message&#039; : function() {},
+				&#039;open&#039;    : function() {},
+				&#039;close&#039;   : function() {},
+				&#039;error&#039;   : function() {}
+			},
+
+			test_mode = false;
+
+
+		//
+		// Queue public functions
+		//
+
+		function get_sQ() {
+			return sQ;
+		}
+
+		function get_rQ() {
+			return rQ;
+		}
+		function get_rQi() {
+			return rQi;
+		}
+		function set_rQi(val) {
+			rQi = val;
+		}
+
+		function rQlen() {
+			return rQ.length - rQi;
+		}
+
+		function rQpeek8() {
+			return (rQ[rQi]      );
+		}
+		function rQshift8() {
+			return (rQ[rQi++]      );
+		}
+		function rQunshift8(num) {
+			if (rQi === 0) {
+				rQ.unshift(num);
+			} else {
+				rQi -= 1;
+				rQ[rQi] = num;
+			}
+
+		}
+		function rQshift16() {
+			return (rQ[rQi++] &lt;&lt;  8) +
+				   (rQ[rQi++]      );
+		}
+		function rQshift32() {
+			return (rQ[rQi++] &lt;&lt; 24) +
+				   (rQ[rQi++] &lt;&lt; 16) +
+				   (rQ[rQi++] &lt;&lt;  8) +
+				   (rQ[rQi++]      );
+		}
+		function rQshiftStr(len) {
+			if (typeof(len) === &#039;undefined&#039;) { len = rQlen(); }
+			var arr = rQ.slice(rQi, rQi + len);
+			rQi += len;
+			return String.fromCharCode.apply(null, arr);
+		}
+		function rQshiftBytes(len) {
+			if (typeof(len) === &#039;undefined&#039;) { len = rQlen(); }
+			rQi += len;
+			return rQ.slice(rQi-len, rQi);
+		}
+
+		function rQslice(start, end) {
+			if (end) {
+				return rQ.slice(rQi + start, rQi + end);
+			} else {
+				return rQ.slice(rQi + start);
+			}
+		}
+
+		// Check to see if we must wait for &#039;num&#039; bytes (default to FBU.bytes)
+		// to be available in the receive queue. Return true if we need to
+		// wait (and possibly print a debug message), otherwise false.
+		function rQwait(msg, num, goback) {
+			var rQlen = rQ.length - rQi; // Skip rQlen() function call
+			if (rQlen &lt; num) {
+				if (goback) {
+					if (rQi &lt; goback) {
+						throw(&#039;rQwait cannot backup &#039; + goback + &#039; bytes&#039;);
+					}
+					rQi -= goback;
+				}
+				//Util.Debug(&#039;   waiting for &#039; + (num-rQlen) +
+				//           &#039; &#039; + msg + &#039; byte(s)&#039;);
+				return true;  // true means need more data
+			}
+			return false;
+		}
+
+		//
+		// Private utility routines
+		//
+
+		function encode_message() {
+			if (mode === &#039;binary&#039;) {
+				// Put in a binary arraybuffer
+				return (new Uint8Array(sQ)).buffer;
+			} else {
+				// base64 encode
+				return Base64.encode(sQ);
+			}
+		}
+
+		function decode_message(data) {
+			//Util.Debug(&#039;&gt;&gt; decode_message: &#039; + data);
+			if (mode === &#039;binary&#039;) {
+				// push arraybuffer values onto the end
+				var u8 = new Uint8Array(data);
+				for (var i = 0; i &lt; u8.length; i++) {
+					rQ.push(u8[i]);
+				}
+			} else {
+				// base64 decode and concat to the end
+				rQ = rQ.concat(Base64.decode(data, 0));
+			}
+			//Util.Debug(&#039;&gt;&gt; decode_message, rQ: &#039; + rQ);
+		}
+
+
+		//
+		// Public Send functions
+		//
+
+		function flush() {
+			if (websocket.bufferedAmount !== 0) {
+				Util.Debug(&#039;bufferedAmount: &#039; + websocket.bufferedAmount);
+			}
+			if (websocket.bufferedAmount &lt; api.maxBufferedAmount) {
+				//Util.Debug(&#039;arr: &#039; + arr);
+				//Util.Debug(&#039;sQ: &#039; + sQ);
+				if (sQ.length &gt; 0) {
+					websocket.send(encode_message(sQ));
+					sQ = [];
+				}
+				return true;
+			} else {
+				Util.Info(&#039;Delaying send, bufferedAmount: &#039; +
+						websocket.bufferedAmount);
+				return false;
+			}
+		}
+
+		// overridable for testing
+		function send(arr) {
+			//Util.Debug(&#039;&gt;&gt; send_array: &#039; + arr);
+			sQ = sQ.concat(arr);
+			return flush();
+		}
+
+		function send_string(str) {
+			//Util.Debug(&#039;&gt;&gt; send_string: &#039; + str);
+			api.send(str.split(&#039;&#039;).map(
+				function (chr) { return chr.charCodeAt(0); } ) );
+		}
+
+		//
+		// Other public functions
+
+		function recv_message(e) {
+			//Util.Debug(&#039;&gt;&gt; recv_message: &#039; + e.data.length);
+
+			try {
+				decode_message(e.data);
+				if (rQlen() &gt; 0) {
+					eventHandlers.message();
+					// Compact the receive queue
+					if (rQ.length &gt; rQmax) {
+						//Util.Debug(&#039;Compacting receive queue&#039;);
+						rQ = rQ.slice(rQi);
+						rQi = 0;
+					}
+				} else {
+					Util.Debug(&#039;Ignoring empty message&#039;);
+				}
+			} catch (exc) {
+				if (typeof exc.stack !== &#039;undefined&#039;) {
+					Util.Warn(&#039;recv_message, caught exception: &#039; + exc.stack);
+				} else if (typeof exc.description !== &#039;undefined&#039;) {
+					Util.Warn(&#039;recv_message, caught exception: &#039; + exc.description);
+				} else {
+					Util.Warn(&#039;recv_message, caught exception:&#039; + exc);
+				}
+				if (typeof exc.name !== &#039;undefined&#039;) {
+					eventHandlers.error(exc.name + &#039;: &#039; + exc.message);
+				} else {
+					eventHandlers.error(exc);
+				}
+			}
+			//Util.Debug(&#039;&lt;&lt; recv_message&#039;);
+		}
+
+
+		// Set event handlers
+		function on(evt, handler) { 
+			eventHandlers[evt] = handler;
+		}
+
+		function init(protocols, ws_schema) {
+			rQ         = [];
+			rQi        = 0;
+			sQ         = [];
+			websocket  = null;
+
+			var bt = false,
+				wsbt = false;
+
+			// Check for full typed array support
+			if ((&#039;Uint8Array&#039; in window) &amp;&amp;
+				(&#039;set&#039; in Uint8Array.prototype)) {
+				bt = true;
+			}
+			// Check for full binary type support in WebSocket
+			// Inspired by:
+			// https://github.com/Modernizr/Modernizr/issues/370
+			// https://github.com/Modernizr/Modernizr/blob/master/feature-detects/websockets/binary.js
+			try {
+				if (bt &amp;&amp; (&#039;binaryType&#039; in WebSocket.prototype ||
+						   !!(new WebSocket(ws_schema + &#039;://.&#039;).binaryType))) {
+					Util.Info(&#039;Detected binaryType support in WebSockets&#039;);
+					wsbt = true;
+				}
+			} catch (exc) {
+				// Just ignore failed test localhost connections
+			}
+
+			// Default protocols if not specified
+			if (typeof(protocols) === &#039;undefined&#039;) {
+				if (wsbt) {
+					protocols = [&#039;binary&#039;, &#039;base64&#039;];
+				} else {
+					protocols = &#039;base64&#039;;
+				}
+			}
+
+			// If no binary support, make sure it was not requested
+			if (!wsbt) {
+				if (protocols === &#039;binary&#039;) {
+					throw(&#039;WebSocket binary sub-protocol requested but not supported&#039;);
+				}
+				if (typeof(protocols) === &#039;object&#039;) {
+					var new_protocols = [];
+					for (var i = 0; i &lt; protocols.length; i++) {
+						if (protocols[i] === &#039;binary&#039;) {
+							Util.Error(&#039;Skipping unsupported WebSocket binary sub-protocol&#039;);
+						} else {
+							new_protocols.push(protocols[i]);
+						}
+					}
+					if (new_protocols.length &gt; 0) {
+						protocols = new_protocols;
+					} else {
+						throw(&#039;Only WebSocket binary sub-protocol was requested and not supported.&#039;);
+					}
+				}
+			}
+
+			return protocols;
+		}
+
+		function open(uri, protocols) {
+			var ws_schema = uri.match(/^([a-z]+):\/\//)[1];
+			protocols = init(protocols, ws_schema);
+
+			if (test_mode) {
+				websocket = {};
+			} else {
+				websocket = new WebSocket(uri, protocols);
+				if (protocols.indexOf(&#039;binary&#039;) &gt;= 0) {
+					websocket.binaryType = &#039;arraybuffer&#039;;
+				}
+			}
+
+			websocket.onmessage = recv_message;
+			websocket.onopen = function() {
+				Util.Debug(&#039;&gt;&gt; WebSock.onopen&#039;);
+				if (websocket.protocol) {
+					mode = websocket.protocol;
+					Util.Info(&#039;Server chose sub-protocol: &#039; + websocket.protocol);
+				} else {
+					mode = &#039;base64&#039;;
+					Util.Error(&#039;Server select no sub-protocol!: &#039; + websocket.protocol);
+				}
+				eventHandlers.open();
+				Util.Debug(&#039;&lt;&lt; WebSock.onopen&#039;);
+			};
+			websocket.onclose = function(e) {
+				Util.Debug(&#039;&gt;&gt; WebSock.onclose&#039;);
+				eventHandlers.close(e);
+				Util.Debug(&#039;&lt;&lt; WebSock.onclose&#039;);
+			};
+			websocket.onerror = function(e) {
+				Util.Debug(&#039;&gt;&gt; WebSock.onerror: &#039; + e);
+				eventHandlers.error(e);
+				Util.Debug(&#039;&lt;&lt; WebSock.onerror&#039;);
+			};
+		}
+
+		function close() {
+			if (websocket) {
+				if ((websocket.readyState === WebSocket.OPEN) ||
+					(websocket.readyState === WebSocket.CONNECTING)) {
+					Util.Info(&#039;Closing WebSocket connection&#039;);
+					websocket.close();
+				}
+				websocket.onmessage = function () { return; };
+			}
+		}
+
+		// Override internal functions for testing
+		// Takes a send function, returns reference to recv function
+		function testMode(override_send, data_mode) {
+			test_mode = true;
+			mode = data_mode;
+			api.send = override_send;
+			api.close = function () {};
+			return recv_message;
+		}
+
+		function constructor() {
+			// Configuration settings
+			api.maxBufferedAmount = 200;
+
+			// Direct access to send and receive queues
+			api.get_sQ       = get_sQ;
+			api.get_rQ       = get_rQ;
+			api.get_rQi      = get_rQi;
+			api.set_rQi      = set_rQi;
+
+			// Routines to read from the receive queue
+			api.rQlen        = rQlen;
+			api.rQpeek8      = rQpeek8;
+			api.rQshift8     = rQshift8;
+			api.rQunshift8   = rQunshift8;
+			api.rQshift16    = rQshift16;
+			api.rQshift32    = rQshift32;
+			api.rQshiftStr   = rQshiftStr;
+			api.rQshiftBytes = rQshiftBytes;
+			api.rQslice      = rQslice;
+			api.rQwait       = rQwait;
+
+			api.flush        = flush;
+			api.send         = send;
+			api.send_string  = send_string;
+
+			api.on           = on;
+			api.init         = init;
+			api.open         = open;
+			api.close        = close;
+			api.testMode     = testMode;
+			return api;
+		}
+
+		return constructor;
+	};
+}]);</textarea>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="container">
+    <p>.</p>
+  </div>
+</footer>
+
+<script type="text/html" id="complexity-popover-template">
+  <div class="complexity-notice">
+    Complexity : {{ complexity.cyclomatic }} <br>
+    Length : {{ complexity.halstead.length }} <br>
+    Difficulty : {{ complexity.halstead.difficulty.toFixed(2) }} <br>
+    Est # bugs : {{ complexity.halstead.bugs.toFixed(2) }}<br>
+  </div>
+</script>
+
+<script type="text/javascript" src="../../assets/scripts/bundles/core-bundle.js"></script>
+<script type="text/javascript" src="../../assets/scripts/bundles/codemirror.js"></script>
+<script type="text/javascript" src="../../assets/scripts/codemirror.markpopovertext.js"></script>
+<script type="text/javascript" src="report.js"></script>
+<script type="text/javascript" src="report.history.js"></script>
+<script type="text/javascript" src="../../assets/scripts/plato-file.js"></script>
+</body>
+</html>

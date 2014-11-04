@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Plato - base64.js</title>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="">
+  <meta name="author" content="">
+
+  <!--[if lt IE 9]>
+  <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+
+  <link href="../../assets/css/vendor/morris.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/bootstrap.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/font-awesome.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/codemirror.css" rel="stylesheet">
+  <link href="../../assets/css/plato.css" rel="stylesheet">
+  <link href="../../assets/css/plato-file.css" rel="stylesheet">
+
+</head>
+
+<body>
+
+<div class="navbar navbar-fixed-top">
+  <div class="container">
+    <a class="navbar-brand" href="http://github.com/es-analysis/plato">Plato on Github</a>
+    <ul class="nav navbar-nav">
+      <li>
+        <a href="../../index.html">Report Home</a>
+      </li>
+    </ul>
+  </div>
+</div>
+
+<div class="jumbotron">
+  <div class="container">
+    <h1>base64.js</h1>
+  </div>
+</div>
+
+<div class="container aggregate-stats">
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Maintainability <a href="http://blogs.msdn.com/b/codeanalysis/archive/2007/11/20/maintainability-index-range-and-meaning.aspx"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="A value between 0 and 100 that represents the relative ease of maintaining the code. A high value means better maintainability." data-original-title="Maintainability Index"  data-container="body"></i></a></h2>
+      <p class="stat">49.58</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Lines of code <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h2>
+      <p class="stat">104</p>
+    </div>
+  </div>
+  <div class="row historical">
+    <div class="col-md-6">
+      <p id="chart_historical_maint" class="chart"></p>
+    </div>
+    <div class="col-md-6">
+      <p id="chart_historical_sloc" class="chart"></p>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Difficulty  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="The difficulty measure is related to the difficulty of the program to write or understand." data-original-title="Difficulty" data-container="body"></i></a></h2>
+      <p class="stat">56.84</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Estimated Errors  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Halstead's delivered bugs is an estimate for the number of errors in the implementation." data-original-title="Delivered Bugs" data-container="body"></i></a></h2>
+      <p class="stat">1.49</p>
+    </div>
+  </div>
+</div>
+
+<div class="container charts">
+  <div class="row">
+    <h2 class="header">Function weight</h2>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h3 class="chart-header">By Complexity <a href="http://en.wikipedia.org/wiki/Cyclomatic_complexity"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="This metric counts the number of distinct paths through a block of code. Lower values are better." data-original-title="Cyclomatic Complexity" data-container="body"></i></a></h3>
+      <div id="fn-by-complexity" class="stat"></div>
+    </div>
+    <div class="col-md-6">
+      <h3 class="chart-header">By SLOC  <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h3>
+      <div id="fn-by-sloc" class="stat"></div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="row">
+    <textarea id="file-source" class="col-md-12">/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+// From: http://hg.mozilla.org/mozilla-central/raw-file/ec10630b1a54/js/src/devtools/jint/sunspider/string-base64.js
+
+angular.module(&#039;noVNC.util&#039;, []).factory(&#039;Base64&#039;, [function() {
+	&#039;use strict&#039;;
+	return  {
+		/* Convert data (an array of integers) to a Base64 string. */
+		toBase64Table : &#039;ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=&#039;.split(&#039;&#039;),
+		base64Pad     : &#039;=&#039;,
+
+		encode: function (data) {
+			var result = &#039;&#039;;
+			var toBase64Table = this.toBase64Table;
+			var length = data.length;
+			var lengthpad = (length%3);
+			var i = 0, j = 0;
+			// Convert every three bytes to 4 ascii characters.
+		  /* BEGIN LOOP */
+			for (i = 0; i &lt; (length - 2); i += 3) {
+				result += toBase64Table[data[i] &gt;&gt; 2];
+				result += toBase64Table[((data[i] &amp; 0x03) &lt;&lt; 4) + (data[i+1] &gt;&gt; 4)];
+				result += toBase64Table[((data[i+1] &amp; 0x0f) &lt;&lt; 2) + (data[i+2] &gt;&gt; 6)];
+				result += toBase64Table[data[i+2] &amp; 0x3f];
+			}
+		  /* END LOOP */
+
+			// Convert the remaining 1 or 2 bytes, pad out to 4 characters.
+			if (lengthpad === 2) {
+				j = length - lengthpad;
+				result += toBase64Table[data[j] &gt;&gt; 2];
+				result += toBase64Table[((data[j] &amp; 0x03) &lt;&lt; 4) + (data[j+1] &gt;&gt; 4)];
+				result += toBase64Table[(data[j+1] &amp; 0x0f) &lt;&lt; 2];
+				result += toBase64Table[64];
+			} else if (lengthpad === 1) {
+				j = length - lengthpad;
+				result += toBase64Table[data[j] &gt;&gt; 2];
+				result += toBase64Table[(data[j] &amp; 0x03) &lt;&lt; 4];
+				result += toBase64Table[64];
+				result += toBase64Table[64];
+			}
+
+			return result;
+		},
+
+		/* Convert Base64 data to a string */
+		toBinaryTable : [
+			-1,-1,-1,-1, -1,-1,-1,-1, -1,-1,-1,-1, -1,-1,-1,-1,
+			-1,-1,-1,-1, -1,-1,-1,-1, -1,-1,-1,-1, -1,-1,-1,-1,
+			-1,-1,-1,-1, -1,-1,-1,-1, -1,-1,-1,62, -1,-1,-1,63,
+			52,53,54,55, 56,57,58,59, 60,61,-1,-1, -1, 0,-1,-1,
+			-1, 0, 1, 2,  3, 4, 5, 6,  7, 8, 9,10, 11,12,13,14,
+			15,16,17,18, 19,20,21,22, 23,24,25,-1, -1,-1,-1,-1,
+			-1,26,27,28, 29,30,31,32, 33,34,35,36, 37,38,39,40,
+			41,42,43,44, 45,46,47,48, 49,50,51,-1, -1,-1,-1,-1
+		],
+
+		decode: function (data, offset) {
+			offset = typeof(offset) !== &#039;undefined&#039; ? offset : 0;
+			var toBinaryTable = this.toBinaryTable;
+			var base64Pad = this.base64Pad;
+			var result, result_length, idx, i, c, padding;
+			var leftbits = 0; // number of bits decoded, but yet to be appended
+			var leftdata = 0; // bits decoded, but yet to be appended
+			var data_length = data.indexOf(&#039;=&#039;) - offset;
+
+			if (data_length &lt; 0) { data_length = data.length - offset; }
+
+			/* Every four characters is 3 resulting numbers */
+			result_length = (data_length &gt;&gt; 2) * 3 + Math.floor((data_length%4)/1.5);
+			result = new Array(result_length);
+
+			// Convert one by one.
+		  /* BEGIN LOOP */
+			for (idx = 0, i = offset; i &lt; data.length; i++) {
+				c = toBinaryTable[data.charCodeAt(i) &amp; 0x7f];
+				padding = (data.charAt(i) === base64Pad);
+				// Skip illegal characters and whitespace
+				if (c === -1) {
+					console.error(&#039;Illegal character code &#039; + data.charCodeAt(i) + &#039; at position &#039; + i);
+					continue;
+				}
+				
+				// Collect data into leftdata, update bitcount
+				leftdata = (leftdata &lt;&lt; 6) | c;
+				leftbits += 6;
+
+				// If we have 8 or more bits, append 8 bits to the result
+				if (leftbits &gt;= 8) {
+					leftbits -= 8;
+					// Append if not padding.
+					if (!padding) {
+						result[idx++] = (leftdata &gt;&gt; leftbits) &amp; 0xff;
+					}
+					leftdata &amp;= (1 &lt;&lt; leftbits) - 1;
+				}
+			}
+		  /* END LOOP */
+
+			// If there are any bits left, the base64 string was corrupted
+			if (leftbits) {
+				throw {name: &#039;Base64-Error&#039;, message: &#039;Corrupted base64 string&#039;};
+			}
+
+			return result;
+		}
+	};
+}]);</textarea>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="container">
+    <p>.</p>
+  </div>
+</footer>
+
+<script type="text/html" id="complexity-popover-template">
+  <div class="complexity-notice">
+    Complexity : {{ complexity.cyclomatic }} <br>
+    Length : {{ complexity.halstead.length }} <br>
+    Difficulty : {{ complexity.halstead.difficulty.toFixed(2) }} <br>
+    Est # bugs : {{ complexity.halstead.bugs.toFixed(2) }}<br>
+  </div>
+</script>
+
+<script type="text/javascript" src="../../assets/scripts/bundles/core-bundle.js"></script>
+<script type="text/javascript" src="../../assets/scripts/bundles/codemirror.js"></script>
+<script type="text/javascript" src="../../assets/scripts/codemirror.markpopovertext.js"></script>
+<script type="text/javascript" src="report.js"></script>
+<script type="text/javascript" src="report.history.js"></script>
+<script type="text/javascript" src="../../assets/scripts/plato-file.js"></script>
+</body>
+</html>

@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Plato - util.js</title>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="">
+  <meta name="author" content="">
+
+  <!--[if lt IE 9]>
+  <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+
+  <link href="../../assets/css/vendor/morris.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/bootstrap.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/font-awesome.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/codemirror.css" rel="stylesheet">
+  <link href="../../assets/css/plato.css" rel="stylesheet">
+  <link href="../../assets/css/plato-file.css" rel="stylesheet">
+
+</head>
+
+<body>
+
+<div class="navbar navbar-fixed-top">
+  <div class="container">
+    <a class="navbar-brand" href="http://github.com/es-analysis/plato">Plato on Github</a>
+    <ul class="nav navbar-nav">
+      <li>
+        <a href="../../index.html">Report Home</a>
+      </li>
+    </ul>
+  </div>
+</div>
+
+<div class="jumbotron">
+  <div class="container">
+    <h1>util.js</h1>
+  </div>
+</div>
+
+<div class="container aggregate-stats">
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Maintainability <a href="http://blogs.msdn.com/b/codeanalysis/archive/2007/11/20/maintainability-index-range-and-meaning.aspx"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="A value between 0 and 100 that represents the relative ease of maintaining the code. A high value means better maintainability." data-original-title="Maintainability Index"  data-container="body"></i></a></h2>
+      <p class="stat">66.10</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Lines of code <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h2>
+      <p class="stat">369</p>
+    </div>
+  </div>
+  <div class="row historical">
+    <div class="col-md-6">
+      <p id="chart_historical_maint" class="chart"></p>
+    </div>
+    <div class="col-md-6">
+      <p id="chart_historical_sloc" class="chart"></p>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Difficulty  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="The difficulty measure is related to the difficulty of the program to write or understand." data-original-title="Difficulty" data-container="body"></i></a></h2>
+      <p class="stat">64.26</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Estimated Errors  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Halstead's delivered bugs is an estimate for the number of errors in the implementation." data-original-title="Delivered Bugs" data-container="body"></i></a></h2>
+      <p class="stat">3.75</p>
+    </div>
+  </div>
+</div>
+
+<div class="container charts">
+  <div class="row">
+    <h2 class="header">Function weight</h2>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h3 class="chart-header">By Complexity <a href="http://en.wikipedia.org/wiki/Cyclomatic_complexity"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="This metric counts the number of distinct paths through a block of code. Lower values are better." data-original-title="Cyclomatic Complexity" data-container="body"></i></a></h3>
+      <div id="fn-by-complexity" class="stat"></div>
+    </div>
+    <div class="col-md-6">
+      <h3 class="chart-header">By SLOC  <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h3>
+      <div id="fn-by-sloc" class="stat"></div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="row">
+    <textarea id="file-source" class="col-md-12">/*
+ * noVNC: HTML5 VNC client
+ * Copyright (C) 2012 Joel Martin
+ * Licensed under MPL 2.0 (see LICENSE.txt)
+ *
+ * See README.md for usage and integration instructions.
+ */
+
+
+var util = angular.module(&#039;noVNC.util&#039;);
+
+util.factory(&#039;Util&#039;, function(){
+	&#039;use strict&#039;;
+
+	var Util = {};
+
+	/*
+	 * Make arrays quack
+	 */
+
+	Array.prototype.push8 = function (num) {
+		this.push(num &amp; 0xFF);
+	};
+
+	Array.prototype.push16 = function (num) {
+		this.push((num &gt;&gt; 8) &amp; 0xFF,
+				  (num     ) &amp; 0xFF  );
+	};
+	Array.prototype.push32 = function (num) {
+		this.push((num &gt;&gt; 24) &amp; 0xFF,
+				  (num &gt;&gt; 16) &amp; 0xFF,
+				  (num &gt;&gt;  8) &amp; 0xFF,
+				  (num      ) &amp; 0xFF  );
+	};
+
+	// IE does not support map (even in IE9)
+	//This prototype is provided by the Mozilla foundation and
+	//is distributed under the MIT license.
+	//http://www.ibiblio.org/pub/Linux/LICENSES/mit.license
+	if (!Array.prototype.map) {
+	  Array.prototype.map = function(fun /*, thisp*/) {
+			var len = this.length;
+			if (typeof fun !== &#039;function&#039;) {
+			  throw new TypeError();
+			}
+
+			var res = new Array(len);
+			var thisp = arguments[1];
+			for (var i = 0; i &lt; len; i++)
+			{
+			  if (i in this) {
+					res[i] = fun.call(thisp, this[i], i, this);
+			  }
+			}
+
+			return res;
+	  };
+	}
+
+	// IE &lt;9 does not support indexOf
+	//This prototype is provided by the Mozilla foundation and
+	//is distributed under the MIT license.
+	//http://www.ibiblio.org/pub/Linux/LICENSES/mit.license
+	if (!Array.prototype.indexOf)
+	{
+	  Array.prototype.indexOf = function(elt /*, from*/)
+	  {
+			var len = this.length &gt;&gt;&gt; 0;
+
+			var from = Number(arguments[1]) || 0;
+			from = (from &lt; 0) ? Math.ceil(from) : Math.floor(from);
+			if (from &lt; 0) {
+			  from += len;
+			}
+
+			for (; from &lt; len; from++) {
+			  if (from in this &amp;&amp; this[from] === elt) {
+					return from;
+			  }
+			}
+			return -1;
+	  };
+	}
+
+
+
+
+	/* 
+	 * ------------------------------------------------------
+	 * Namespaced in Util
+	 * ------------------------------------------------------
+	 */
+
+	/*
+	 * Logging/debug routines
+	 */
+
+	Util._log_level = &#039;warn&#039;;
+	Util.init_logging = function (level) {
+		if (typeof level === &#039;undefined&#039;) {
+			level = Util._log_level;
+		} else {
+			Util._log_level = level;
+		}
+		if (typeof window.console === &#039;undefined&#039;) {
+			if (typeof window.opera !== &#039;undefined&#039;) {
+				window.console = {
+					&#039;log&#039;  : window.opera.postError,
+					&#039;warn&#039; : window.opera.postError,
+					&#039;error&#039;: window.opera.postError };
+			} else {
+				window.console = {
+					&#039;log&#039;  : function() {},
+					&#039;warn&#039; : function() {},
+					&#039;error&#039;: function() {}};
+			}
+		}
+
+		Util.Debug = Util.Info = Util.Warn = Util.Error = function () {};
+		switch (level) {
+			case &#039;debug&#039;:
+				Util.Debug = function (msg) { console.log(msg); };
+				break;
+			case &#039;info&#039;:
+				Util.Info  = function (msg) { console.log(msg); };
+				break;
+			case &#039;warn&#039;:
+				Util.Warn  = function (msg) { console.warn(msg); };
+				break;
+			case &#039;error&#039;:
+				Util.Error = function (msg) { console.error(msg); };
+				break;
+			case &#039;none&#039;:
+				break;
+			default:
+				throw(&#039;invalid logging type &quot;&#039; + level + &#039;&quot;&#039;);
+		}
+	};
+	Util.get_logging = function () {
+		return Util._log_level;
+	};
+	// Initialize logging level
+	Util.init_logging();
+
+
+	// Set configuration default for Crockford style function namespaces
+	Util.conf_default = function(cfg, api, defaults, v, mode, type, defval, desc) {
+		var getter, setter;
+
+		// Default getter function
+		getter = function (idx) {
+			if ((type in {&#039;arr&#039;:1, &#039;array&#039;:1}) &amp;&amp;
+				(typeof idx !== &#039;undefined&#039;)) {
+				return cfg[v][idx];
+			} else {
+				return cfg[v];
+			}
+		};
+
+		// Default setter function
+		setter = function (val, idx) {
+			if (type in {&#039;boolean&#039;:1, &#039;bool&#039;:1}) {
+				if ((!val) || (val in {&#039;0&#039;:1, &#039;no&#039;:1, &#039;false&#039;:1})) {
+					val = false;
+				} else {
+					val = true;
+				}
+			} else if (type in {&#039;integer&#039;:1, &#039;int&#039;:1}) {
+				val = parseInt(val, 10);
+			} else if (type === &#039;str&#039;) {
+				val = String(val);
+			} else if (type === &#039;func&#039;) {
+				if (!val) {
+					val = function () {};
+				}
+			}
+			if (typeof idx !== &#039;undefined&#039;) {
+				cfg[v][idx] = val;
+			} else {
+				cfg[v] = val;
+			}
+		};
+
+		// Set the description
+		api[v + &#039;_description&#039;] = desc;
+
+		// Set the getter function
+		if (typeof api[&#039;get_&#039; + v] === &#039;undefined&#039;) {
+			api[&#039;get_&#039; + v] = getter;
+		}
+
+		// Set the setter function with extra sanity checks
+		if (typeof api[&#039;set_&#039; + v] === &#039;undefined&#039;) {
+			api[&#039;set_&#039; + v] = function (val, idx) {
+				if (mode in {&#039;RO&#039;:1, &#039;ro&#039;:1}) {
+					throw(v + &#039; is read-only&#039;);
+				} else if ((mode in {&#039;WO&#039;:1, &#039;wo&#039;:1}) &amp;&amp;
+						   (typeof cfg[v] !== &#039;undefined&#039;)) {
+					throw(v + &#039; can only be set once&#039;);
+				}
+				setter(val, idx);
+			};
+		}
+
+		// Set the default value
+		if (typeof defaults[v] !== &#039;undefined&#039;) {
+			defval = defaults[v];
+		} else if ((type in {&#039;arr&#039;:1, &#039;array&#039;:1}) &amp;&amp;
+				(! (defval instanceof Array))) {
+			defval = [];
+		}
+		// Coerce existing setting to the right type
+		//Util.Debug(&#039;v: &#039; + v + &#039;, defval: &#039; + defval + &#039;, defaults[v]: &#039; + defaults[v]);
+		setter(defval);
+	};
+
+	// Set group of configuration defaults
+	Util.conf_defaults = function(cfg, api, defaults, arr) {
+		var i;
+		for (i = 0; i &lt; arr.length; i++) {
+			Util.conf_default(cfg, api, defaults, arr[i][0], arr[i][1],
+					arr[i][2], arr[i][3], arr[i][4]);
+		}
+	};
+
+	/*
+	 * Decode from UTF-8
+	 */
+	Util.decodeUTF8 = function(utf8string) {
+		return decodeURIComponent(escape(utf8string));
+	};
+
+
+
+	/*
+	 * Cross-browser routines
+	 */
+
+
+	// Get DOM element position on page
+	//  This solution is based based on http://www.greywyvern.com/?post=331
+	//  Thanks to Brian Huisman AKA GreyWyvern!
+	Util.getPosition = function (obj) {
+		var cliRect = obj.getBoundingClientRect();
+		return {&#039;x&#039;: cliRect.left, &#039;y&#039;: cliRect.top };
+	};
+
+
+
+	// Get mouse event position in DOM element
+	Util.getEventPosition = function (e, obj, scale) {
+		var evt, docX, docY, pos;
+		//if (!e) evt = window.event;
+
+		evt = (e ? e : window.event);
+		evt = (evt.changedTouches ? evt.changedTouches[0] : evt.touches ? evt.touches[0] : evt);
+		if (evt.pageX || evt.pageY) {
+			docX = evt.pageX;
+			docY = evt.pageY;
+		} else if (evt.clientX || evt.clientY) {
+			docX = evt.clientX + document.body.scrollLeft +
+				document.documentElement.scrollLeft;
+			docY = evt.clientY + document.body.scrollTop +
+				document.documentElement.scrollTop;
+		}
+		pos = Util.getPosition(obj);
+		if (typeof scale === &#039;undefined&#039;) {
+			scale = 1;
+		}
+		var realx = docX - pos.x;
+		var realy = docY - pos.y;
+		var x = Math.max(Math.min(realx, obj.width-1), 0);
+		var y = Math.max(Math.min(realy, obj.height-1), 0);
+		return {&#039;x&#039;: x / scale, &#039;y&#039;: y / scale, &#039;realx&#039;: realx / scale, &#039;realy&#039;: realy / scale};
+	};
+
+
+	// Event registration. Based on: http://www.scottandrew.com/weblog/articles/cbs-events
+	Util.addEvent = function (obj, evType, fn){
+		if (obj.attachEvent){
+			var r = obj.attachEvent(&#039;on&#039;+evType, fn);
+			return r;
+		} else if (obj.addEventListener){
+			obj.addEventListener(evType, fn, false); 
+			return true;
+		} else {
+			throw(&#039;Handler could not be attached&#039;);
+		}
+	};
+
+	Util.removeEvent = function(obj, evType, fn){
+		if (obj.detachEvent){
+			var r = obj.detachEvent(&#039;on&#039;+evType, fn);
+			return r;
+		} else if (obj.removeEventListener){
+			obj.removeEventListener(evType, fn, false);
+			return true;
+		} else {
+			throw(&#039;Handler could not be removed&#039;);
+		}
+	};
+
+	Util.stopEvent = function(e) {
+		if (e.stopPropagation) { e.stopPropagation(); }
+		else                   { e.cancelBubble = true; }
+
+		if (e.preventDefault)  { e.preventDefault(); }
+		else                   { e.returnValue = false; }
+	};
+
+
+	// Set browser engine versions. Based on mootools.
+	Util.Features = {xpath: !!(document.evaluate), air: !!(window.runtime), query: !!(document.querySelector)};
+
+	Util.Engine = {
+		// Version detection break in Opera 11.60 (errors on arguments.callee.caller reference)
+		//&#039;presto&#039;: (function() {
+		//         return (!window.opera) ? false : ((arguments.callee.caller) ? 960 : ((document.getElementsByClassName) ? 950 : 925)); }()),
+		&#039;presto&#039;: (function() { return (!window.opera) ? false : true; }()),
+
+		&#039;trident&#039;: (function() {
+				return (!window.ActiveXObject) ? false : ((window.XMLHttpRequest) ? ((document.querySelectorAll) ? 6 : 5) : 4); }()),
+		&#039;webkit&#039;: (
+			function() {
+				try { 
+					return (navigator.taintEnabled) ? false : ((Util.Features.xpath) ? ((Util.Features.query) ? 525 : 420) : 419); 
+				} catch (e) {
+					return false;
+				} 
+			}()
+		),
+		&#039;gecko&#039;: (function() {
+				return (!document.getBoxObjectFor &amp;&amp; window.mozInnerScreenX == null) ? false : ((document.getElementsByClassName) ? 19 : 18); }())
+	};
+	
+	if (Util.Engine.webkit) {
+		// Extract actual webkit version if available
+		Util.Engine.webkit = (function(v) {
+			var re = new RegExp(&#039;WebKit/([0-9\\.]*) &#039;);
+			v = (navigator.userAgent.match(re) || [&#039;&#039;, v])[1];
+			return parseFloat(v, 10);
+		})(Util.Engine.webkit);
+	}
+
+	Util.Flash = (function(){
+		var v, version;
+		try {
+			v = navigator.plugins[&#039;Shockwave Flash&#039;].description;
+		} catch(err1) {
+			try {
+				v = new ActiveXObject(&#039;ShockwaveFlash.ShockwaveFlash&#039;).GetVariable(&#039;$version&#039;);
+			} catch(err2) {
+				v = &#039;0 r0&#039;;
+			}
+		}
+		version = v.match(/\d+/g);
+		return {version: parseInt(version[0] || 0 + &#039;.&#039; + version[1], 10) || 0, build: parseInt(version[2], 10) || 0};
+	}());
+
+	return Util;
+});
+
+// 
+// requestAnimationFrame shim with setTimeout fallback
+//
+util.factory(&#039;requestAnimFrame&#039;, function(){
+	&#039;use strict&#039;;
+	return function() {
+		return window.requestAnimationFrame   || 
+			window.webkitRequestAnimationFrame || 
+			window.mozRequestAnimationFrame    || 
+			window.oRequestAnimationFrame      || 
+			window.msRequestAnimationFrame     || 
+			function(callback){
+				window.setTimeout(callback, 1000 / 60);
+			};
+	};
+});</textarea>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="container">
+    <p>.</p>
+  </div>
+</footer>
+
+<script type="text/html" id="complexity-popover-template">
+  <div class="complexity-notice">
+    Complexity : {{ complexity.cyclomatic }} <br>
+    Length : {{ complexity.halstead.length }} <br>
+    Difficulty : {{ complexity.halstead.difficulty.toFixed(2) }} <br>
+    Est # bugs : {{ complexity.halstead.bugs.toFixed(2) }}<br>
+  </div>
+</script>
+
+<script type="text/javascript" src="../../assets/scripts/bundles/core-bundle.js"></script>
+<script type="text/javascript" src="../../assets/scripts/bundles/codemirror.js"></script>
+<script type="text/javascript" src="../../assets/scripts/codemirror.markpopovertext.js"></script>
+<script type="text/javascript" src="report.js"></script>
+<script type="text/javascript" src="report.history.js"></script>
+<script type="text/javascript" src="../../assets/scripts/plato-file.js"></script>
+</body>
+</html>

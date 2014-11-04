@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Plato - input.js</title>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="">
+  <meta name="author" content="">
+
+  <!--[if lt IE 9]>
+  <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+
+  <link href="../../assets/css/vendor/morris.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/bootstrap.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/font-awesome.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/codemirror.css" rel="stylesheet">
+  <link href="../../assets/css/plato.css" rel="stylesheet">
+  <link href="../../assets/css/plato-file.css" rel="stylesheet">
+
+</head>
+
+<body>
+
+<div class="navbar navbar-fixed-top">
+  <div class="container">
+    <a class="navbar-brand" href="http://github.com/es-analysis/plato">Plato on Github</a>
+    <ul class="nav navbar-nav">
+      <li>
+        <a href="../../index.html">Report Home</a>
+      </li>
+    </ul>
+  </div>
+</div>
+
+<div class="jumbotron">
+  <div class="container">
+    <h1>input.js</h1>
+  </div>
+</div>
+
+<div class="container aggregate-stats">
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Maintainability <a href="http://blogs.msdn.com/b/codeanalysis/archive/2007/11/20/maintainability-index-range-and-meaning.aspx"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="A value between 0 and 100 that represents the relative ease of maintaining the code. A high value means better maintainability." data-original-title="Maintainability Index"  data-container="body"></i></a></h2>
+      <p class="stat">64.52</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Lines of code <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h2>
+      <p class="stat">408</p>
+    </div>
+  </div>
+  <div class="row historical">
+    <div class="col-md-6">
+      <p id="chart_historical_maint" class="chart"></p>
+    </div>
+    <div class="col-md-6">
+      <p id="chart_historical_sloc" class="chart"></p>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Difficulty  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="The difficulty measure is related to the difficulty of the program to write or understand." data-original-title="Difficulty" data-container="body"></i></a></h2>
+      <p class="stat">56.85</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Estimated Errors  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Halstead's delivered bugs is an estimate for the number of errors in the implementation." data-original-title="Delivered Bugs" data-container="body"></i></a></h2>
+      <p class="stat">3.11</p>
+    </div>
+  </div>
+</div>
+
+<div class="container charts">
+  <div class="row">
+    <h2 class="header">Function weight</h2>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h3 class="chart-header">By Complexity <a href="http://en.wikipedia.org/wiki/Cyclomatic_complexity"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="This metric counts the number of distinct paths through a block of code. Lower values are better." data-original-title="Cyclomatic Complexity" data-container="body"></i></a></h3>
+      <div id="fn-by-complexity" class="stat"></div>
+    </div>
+    <div class="col-md-6">
+      <h3 class="chart-header">By SLOC  <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h3>
+      <div id="fn-by-sloc" class="stat"></div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="row">
+    <textarea id="file-source" class="col-md-12">var input = angular.module(&#039;noVNC.input&#039;, [&#039;noVNC.keyboard&#039;, &#039;noVNC.util&#039;]);
+
+/*
+ * noVNC: HTML5 VNC client
+ * Copyright (C) 2012 Joel Martin
+ * Copyright (C) 2013 Samuel Mannehed for Cendio AB
+ * Licensed under MPL 2.0 or any later version (see LICENSE.txt)
+ */
+
+
+//
+// Keyboard event handler
+//
+input.factory(&#039;Keyboard&#039;, [&#039;Util&#039;, &#039;KeyEventDecoder&#039;, &#039;kbdUtil&#039;, &#039;VerifyCharModifier&#039;, &#039;TrackKeyState&#039;, &#039;EscapeModifiers&#039;,
+function (Util, KeyEventDecoder, kbdUtil, VerifyCharModifier, TrackKeyState, EscapeModifiers) {
+	&#039;use strict&#039;;
+
+	return function(defaults) {
+		var that = {};  // Public API methods
+		var conf = {};  // Configuration attributes
+
+		// (even if they are happy)
+
+		// Configuration attributes
+		Util.conf_defaults(conf, that, defaults, [
+			[&#039;target&#039;,      &#039;wo&#039;, &#039;dom&#039;,  document, &#039;DOM element that captures keyboard input&#039;],
+			[&#039;focused&#039;,     &#039;rw&#039;, &#039;bool&#039;, false, &#039;Capture and send key events&#039;],
+
+			[&#039;onKeyPress&#039;,  &#039;rw&#039;, &#039;func&#039;, null, &#039;Handler for key press/release&#039;]
+		]);
+
+
+		// 
+		// Private functions
+		//
+
+		/////// setup
+
+		function onRfbEvent(evt) {
+			if (conf.onKeyPress) {
+				Util.Debug(&#039;onKeyPress &#039; + (evt.type === &#039;keydown&#039; ? &#039;down&#039; : &#039;up&#039;) +
+					&#039;, keysym: &#039; + evt.keysym.keysym + &#039;(&#039; + evt.keysym.keyname + &#039;)&#039;);
+				conf.onKeyPress(evt.keysym.keysym, evt.type === &#039;keydown&#039;);
+			}
+		}
+
+		// create the keyboard handler
+		var k = KeyEventDecoder(
+			kbdUtil.ModifierSync(),
+			VerifyCharModifier(
+				TrackKeyState(
+					EscapeModifiers(onRfbEvent)
+				)
+			)
+		);
+
+		function onKeyDown(e) {
+			if (!conf.focused) {
+				return true;
+			}
+			if (k.keydown(e)) {
+				// Suppress bubbling/default actions
+				Util.stopEvent(e);
+				return false;
+			} else {
+				// Allow the event to bubble and become a keyPress event which
+				// will have the character code translated
+				return true;
+			}
+		}
+		function onKeyPress(e) {
+			if (!conf.focused) {
+				return true;
+			}
+			if (k.keypress(e)) {
+				// Suppress bubbling/default actions
+				Util.stopEvent(e);
+				return false;
+			} else {
+				// Allow the event to bubble and become a keyPress event which
+				// will have the character code translated
+				return true;
+			}
+		}
+
+		function onKeyUp(e) {
+			if (!conf.focused) {
+				return true;
+			}
+			if (k.keyup(e)) {
+				// Suppress bubbling/default actions
+				Util.stopEvent(e);
+				return false;
+			} else {
+				// Allow the event to bubble and become a keyPress event which
+				// will have the character code translated
+				return true;
+			}
+		}
+
+		function allKeysUp() {
+			Util.Debug(&#039;&gt;&gt; Keyboard.allKeysUp&#039;);
+
+			k.releaseAll();
+			Util.Debug(&#039;&lt;&lt; Keyboard.allKeysUp&#039;);
+		}
+
+		//
+		// Public API interface functions
+		//
+
+		that.grab = function() {
+			//Util.Debug(&#039;&gt;&gt; Keyboard.grab&#039;);
+			var c = conf.target;
+
+			Util.addEvent(c, &#039;keydown&#039;, onKeyDown);
+			Util.addEvent(c, &#039;keyup&#039;, onKeyUp);
+			Util.addEvent(c, &#039;keypress&#039;, onKeyPress);
+
+			// Release (key up) if window loses focus
+			Util.addEvent(window, &#039;blur&#039;, allKeysUp);
+
+			//Util.Debug(&#039;&lt;&lt; Keyboard.grab&#039;);
+		};
+
+		that.ungrab = function() {
+			//Util.Debug(&#039;&gt;&gt; Keyboard.ungrab&#039;);
+			var c = conf.target;
+
+			Util.removeEvent(c, &#039;keydown&#039;, onKeyDown);
+			Util.removeEvent(c, &#039;keyup&#039;, onKeyUp);
+			Util.removeEvent(c, &#039;keypress&#039;, onKeyPress);
+			Util.removeEvent(window, &#039;blur&#039;, allKeysUp);
+
+			// Release (key up) all keys that are in a down state
+			allKeysUp();
+
+			//Util.Debug(&#039;&gt;&gt; Keyboard.ungrab&#039;);
+		};
+
+		that.sync = function(e) {
+			k.syncModifiers(e);
+		};
+
+
+		return that;  // Return the public API interface
+	};
+}]);
+
+//
+// Mouse event handler
+//
+
+input.factory(&#039;Mouse&#039;, [&#039;Util&#039;, function (Util) {
+	&#039;use strict&#039;;
+	return function(defaults) {
+		var that             = {};  // Public API methods
+		var conf             = {};  // Configuration attributes
+		var mouseCaptured    = false;
+		var doubleClickTimer = null;
+		var lastTouchPos     = null;
+
+		// Configuration attributes
+		Util.conf_defaults(conf, that, defaults, [
+			[&#039;target&#039;,         &#039;ro&#039;, &#039;dom&#039;,  document, &#039;DOM element that captures mouse input&#039;],
+			[&#039;keyboard&#039;,       &#039;ro&#039;, &#039;dom&#039;,  null, &#039;keyboard object&#039;],
+			[&#039;notify&#039;,         &#039;ro&#039;, &#039;func&#039;,  null, &#039;Function to call to notify whenever a mouse event is received&#039;],
+			[&#039;focused&#039;,        &#039;rw&#039;, &#039;bool&#039;, true, &#039;Capture and send mouse clicks/movement&#039;],
+			[&#039;scale&#039;,          &#039;rw&#039;, &#039;float&#039;, 1.0, &#039;Viewport scale factor 0.0 - 1.0&#039;],
+
+			[&#039;onMouseButton&#039;,  &#039;rw&#039;, &#039;func&#039;, null, &#039;Handler for mouse button click/release&#039;],
+			[&#039;onMouseMove&#039;,    &#039;rw&#039;, &#039;func&#039;, null, &#039;Handler for mouse movement&#039;],
+			[&#039;touchButton&#039;,    &#039;rw&#039;, &#039;int&#039;, 1, &#039;Button mask (1, 2, 4) for touch devices (0 means ignore clicks)&#039;]
+		]);
+
+		function captureMouse() {
+			// capturing the mouse ensures we get the mouseup event
+			if (conf.target.setCapture) {
+				conf.target.setCapture();
+			}
+
+			// some browsers give us mouseup events regardless,
+			// so if we never captured the mouse, we can disregard the event
+			mouseCaptured = true;
+		}
+
+		function releaseMouse() {
+			if (conf.target.releaseCapture) {
+				conf.target.releaseCapture();
+			}
+			mouseCaptured = false;
+		}
+		// 
+		// Private functions
+		//
+
+		function resetDoubleClickTimer() {
+			doubleClickTimer = null;
+		}
+
+		function onMouseButton(e, down) {
+			var evt, pos, bmask;
+			if (!conf.focused) {
+				return true;
+			}
+
+			if (conf.notify) {
+				conf.notify(e);
+			}
+
+			evt = (e ? e : window.event);
+			pos = Util.getEventPosition(e, conf.target, conf.scale);
+
+			if (e.touches || e.changedTouches) {
+				// Touch device
+
+				// When two touches occur within 500 ms of each other and are
+				// closer than 20 pixels together a double click is triggered.
+				if (down === 1) {
+					if (doubleClickTimer == null) {
+						lastTouchPos = pos;
+					} else {
+						clearTimeout(doubleClickTimer); 
+
+						// When the distance between the two touches is small enough
+						// force the position of the latter touch to the position of
+						// the first.
+
+						var xs = lastTouchPos.x - pos.x;
+						var ys = lastTouchPos.y - pos.y;
+						var d = Math.sqrt((xs * xs) + (ys * ys));
+
+						// The goal is to trigger on a certain physical width, the
+						// devicePixelRatio brings us a bit closer but is not optimal.
+						if (d &lt; 20 * window.devicePixelRatio) {
+							pos = lastTouchPos;
+						}
+					}
+					doubleClickTimer = setTimeout(resetDoubleClickTimer, 500);
+				}
+				bmask = conf.touchButton;
+				// If bmask is set
+			} else if (evt.which) {
+				/* everything except IE */
+				bmask = 1 &lt;&lt; evt.button;
+			} else {
+				/* IE including 9 */
+				bmask = (evt.button &amp; 0x1) +      // Left
+						(evt.button &amp; 0x2) * 2 +  // Right
+						(evt.button &amp; 0x4) / 2;   // Middle
+			}
+			//Util.Debug(&#039;mouse &#039; + pos.x + &#039;,&#039; + pos.y + &#039; down: &#039; + down +
+			//           &#039; bmask: &#039; + bmask + &#039;(evt.button: &#039; + evt.button + &#039;)&#039;);
+			if (conf.onMouseButton) {
+				Util.Debug(&#039;onMouseButton &#039; + (down ? &#039;down&#039; : &#039;up&#039;) +
+							 &#039;, x: &#039; + pos.x + &#039;, y: &#039; + pos.y + &#039;, bmask: &#039; + bmask);
+				conf.onMouseButton(pos.x, pos.y, down, bmask);
+			}
+			Util.stopEvent(e);
+			return false;
+		}
+
+		function onMouseDown(e) {
+			captureMouse();
+			onMouseButton(e, 1);
+		}
+
+		function onMouseUp(e) {
+			if (!mouseCaptured) {
+				return;
+			}
+
+			onMouseButton(e, 0);
+			releaseMouse();
+		}
+
+		function onMouseWheel(e) {
+			var evt, pos, bmask, wheelData;
+			if (!conf.focused) {
+				return true;
+			}
+			if (conf.notify) {
+				conf.notify(e);
+			}
+
+			evt = (e ? e : window.event);
+			pos = Util.getEventPosition(e, conf.target, conf.scale);
+			wheelData = evt.detail ? evt.detail * -1 : evt.wheelDelta / 40;
+			if (wheelData &gt; 0) {
+				bmask = 1 &lt;&lt; 3;
+			} else {
+				bmask = 1 &lt;&lt; 4;
+			}
+			//Util.Debug(&#039;mouse scroll by &#039; + wheelData + &#039;:&#039; + pos.x + &#039;,&#039; + pos.y);
+			if (conf.onMouseButton) {
+				conf.onMouseButton(pos.x, pos.y, 1, bmask);
+				conf.onMouseButton(pos.x, pos.y, 0, bmask);
+			}
+			Util.stopEvent(e);
+			return false;
+		}
+
+		function onMouseMove(e) {
+			var evt, pos;
+			if (!conf.focused) {
+				return true;
+			}
+			if (conf.notify) {
+				conf.notify(e);
+			}
+
+			evt = (e ? e : window.event);
+
+			pos = Util.getEventPosition(e, conf.target, conf.scale);
+			//Util.Debug(&#039;mouse &#039; + evt.which + &#039;/&#039; + evt.button + &#039; up:&#039; + pos.x + &#039;,&#039; + pos.y);
+			if (conf.onMouseMove) {
+				conf.onMouseMove(pos.x, pos.y);
+			}
+			Util.stopEvent(e);
+			return false;
+		}
+
+		function onMouseDisable(e) {
+			var evt, pos;
+			if (!conf.focused) {
+				return true;
+			}
+			evt = (e ? e : window.event);
+			pos = Util.getEventPosition(e, conf.target, conf.scale);
+			/* Stop propagation if inside canvas area */
+			if ((pos.realx &gt;= 0) &amp;&amp; (pos.realy &gt;= 0) &amp;&amp;
+				(pos.realx &lt; conf.target.offsetWidth) &amp;&amp;
+				(pos.realy &lt; conf.target.offsetHeight)) {
+				//Util.Debug(&#039;mouse event disabled&#039;);
+				Util.stopEvent(e);
+				return false;
+			}
+			//Util.Debug(&#039;mouse event not disabled&#039;);
+			return true;
+		}
+
+		function onMouseEnter () {
+			conf.keyboard.set_focused(true);
+		}
+
+		function onMouseLeave () {
+			conf.keyboard.set_focused(false);
+		}
+
+		//
+		// Public API interface functions
+		//
+
+		that.grab = function() {
+			//Util.Debug(&#039;&gt;&gt; Mouse.grab&#039;);
+			var c = conf.target;
+
+			if (&#039;ontouchstart&#039; in document.documentElement) {
+				Util.addEvent(c, &#039;touchstart&#039;, onMouseDown);
+				Util.addEvent(window, &#039;touchend&#039;, onMouseUp);
+				Util.addEvent(c, &#039;touchend&#039;, onMouseUp);
+				Util.addEvent(c, &#039;touchmove&#039;, onMouseMove);
+			} else {
+				Util.addEvent(c, &#039;mousedown&#039;, onMouseDown);
+				Util.addEvent(window, &#039;mouseup&#039;, onMouseUp);
+				Util.addEvent(c, &#039;mouseup&#039;, onMouseUp);
+				Util.addEvent(c, &#039;mousemove&#039;, onMouseMove);
+				Util.addEvent(c, &#039;mouseenter&#039;, onMouseEnter);
+				Util.addEvent(c, &#039;mouseleave&#039;, onMouseLeave);
+				Util.addEvent(c, (Util.Engine.gecko) ? &#039;DOMMouseScroll&#039; : &#039;mousewheel&#039;, onMouseWheel);
+			}
+
+			/* Work around right and middle click browser behaviors */
+			Util.addEvent(document, &#039;click&#039;, onMouseDisable);
+			Util.addEvent(document.body, &#039;contextmenu&#039;, onMouseDisable);
+
+			//Util.Debug(&#039;&lt;&lt; Mouse.grab&#039;);
+		};
+
+		that.ungrab = function() {
+			//Util.Debug(&#039;&gt;&gt; Mouse.ungrab&#039;);
+			var c = conf.target;
+
+			if (&#039;ontouchstart&#039; in document.documentElement) {
+				Util.removeEvent(c, &#039;touchstart&#039;, onMouseDown);
+				Util.removeEvent(window, &#039;touchend&#039;, onMouseUp);
+				Util.removeEvent(c, &#039;touchend&#039;, onMouseUp);
+				Util.removeEvent(c, &#039;touchmove&#039;, onMouseMove);
+			} else {
+				Util.removeEvent(c, &#039;mousedown&#039;, onMouseDown);
+				Util.removeEvent(window, &#039;mouseup&#039;, onMouseUp);
+				Util.removeEvent(c, &#039;mouseup&#039;, onMouseUp);
+				Util.removeEvent(c, &#039;mousemove&#039;, onMouseMove);
+				Util.removeEvent(c, &#039;mouseenter&#039;, onMouseEnter);
+				Util.removeEvent(c, &#039;mouseleave&#039;, onMouseLeave);
+				Util.removeEvent(c, (Util.Engine.gecko) ? &#039;DOMMouseScroll&#039; : &#039;mousewheel&#039;, onMouseWheel);
+			}
+
+			/* Work around right and middle click browser behaviors */
+			Util.removeEvent(document, &#039;click&#039;, onMouseDisable);
+			Util.removeEvent(document.body, &#039;contextmenu&#039;, onMouseDisable);
+
+			//Util.Debug(&#039;&gt;&gt; Mouse.ungrab&#039;);
+		};
+
+		return that;  // Return the public API interface
+	};
+}]);</textarea>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="container">
+    <p>.</p>
+  </div>
+</footer>
+
+<script type="text/html" id="complexity-popover-template">
+  <div class="complexity-notice">
+    Complexity : {{ complexity.cyclomatic }} <br>
+    Length : {{ complexity.halstead.length }} <br>
+    Difficulty : {{ complexity.halstead.difficulty.toFixed(2) }} <br>
+    Est # bugs : {{ complexity.halstead.bugs.toFixed(2) }}<br>
+  </div>
+</script>
+
+<script type="text/javascript" src="../../assets/scripts/bundles/core-bundle.js"></script>
+<script type="text/javascript" src="../../assets/scripts/bundles/codemirror.js"></script>
+<script type="text/javascript" src="../../assets/scripts/codemirror.markpopovertext.js"></script>
+<script type="text/javascript" src="report.js"></script>
+<script type="text/javascript" src="report.history.js"></script>
+<script type="text/javascript" src="../../assets/scripts/plato-file.js"></script>
+</body>
+</html>

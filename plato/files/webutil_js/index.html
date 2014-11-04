@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Plato - webutil.js</title>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="">
+  <meta name="author" content="">
+
+  <!--[if lt IE 9]>
+  <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+
+  <link href="../../assets/css/vendor/morris.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/bootstrap.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/font-awesome.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/codemirror.css" rel="stylesheet">
+  <link href="../../assets/css/plato.css" rel="stylesheet">
+  <link href="../../assets/css/plato-file.css" rel="stylesheet">
+
+</head>
+
+<body>
+
+<div class="navbar navbar-fixed-top">
+  <div class="container">
+    <a class="navbar-brand" href="http://github.com/es-analysis/plato">Plato on Github</a>
+    <ul class="nav navbar-nav">
+      <li>
+        <a href="../../index.html">Report Home</a>
+      </li>
+    </ul>
+  </div>
+</div>
+
+<div class="jumbotron">
+  <div class="container">
+    <h1>webutil.js</h1>
+  </div>
+</div>
+
+<div class="container aggregate-stats">
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Maintainability <a href="http://blogs.msdn.com/b/codeanalysis/archive/2007/11/20/maintainability-index-range-and-meaning.aspx"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="A value between 0 and 100 that represents the relative ease of maintaining the code. A high value means better maintainability." data-original-title="Maintainability Index"  data-container="body"></i></a></h2>
+      <p class="stat">63.06</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Lines of code <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h2>
+      <p class="stat">197</p>
+    </div>
+  </div>
+  <div class="row historical">
+    <div class="col-md-6">
+      <p id="chart_historical_maint" class="chart"></p>
+    </div>
+    <div class="col-md-6">
+      <p id="chart_historical_sloc" class="chart"></p>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Difficulty  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="The difficulty measure is related to the difficulty of the program to write or understand." data-original-title="Difficulty" data-container="body"></i></a></h2>
+      <p class="stat">46.53</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Estimated Errors  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Halstead's delivered bugs is an estimate for the number of errors in the implementation." data-original-title="Delivered Bugs" data-container="body"></i></a></h2>
+      <p class="stat">1.86</p>
+    </div>
+  </div>
+</div>
+
+<div class="container charts">
+  <div class="row">
+    <h2 class="header">Function weight</h2>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h3 class="chart-header">By Complexity <a href="http://en.wikipedia.org/wiki/Cyclomatic_complexity"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="This metric counts the number of distinct paths through a block of code. Lower values are better." data-original-title="Cyclomatic Complexity" data-container="body"></i></a></h3>
+      <div id="fn-by-complexity" class="stat"></div>
+    </div>
+    <div class="col-md-6">
+      <h3 class="chart-header">By SLOC  <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h3>
+      <div id="fn-by-sloc" class="stat"></div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="row">
+    <textarea id="file-source" class="col-md-12">/*
+ * noVNC: HTML5 VNC client
+ * Copyright (C) 2012 Joel Martin
+ * Copyright (C) 2013 NTT corp.
+ * Licensed under MPL 2.0 (see LICENSE.txt)
+ *
+ * See README.md for usage and integration instructions.
+ */
+
+
+angular.module(&#039;noVNC.util&#039;).factory(&#039;WebUtil&#039;, [&#039;Util&#039;, function(Util) {
+	&#039;use strict&#039;;
+
+	// Globals defined here
+	var WebUtil = {};
+
+	/* 
+	 * ------------------------------------------------------
+	 * Namespaced in WebUtil
+	 * ------------------------------------------------------
+	 */
+
+	// init log level reading the logging HTTP param
+	WebUtil.init_logging = function(level) {
+		if (typeof level !== &#039;undefined&#039;) {
+			Util._log_level = level;
+		} else {
+			Util._log_level = (document.location.href.match(
+				/logging=([A-Za-z0-9\._\-]*)/) ||
+				[&#039;&#039;, Util._log_level])[1];
+		}
+		Util.init_logging();
+	};
+
+
+	WebUtil.dirObj = function (obj, depth, parent) {
+		var i, msg = &#039;&#039;, val = &#039;&#039;;
+		if (! depth) { depth=2; }
+		if (! parent) { parent= &#039;&#039;; }
+
+		// Print the properties of the passed-in object 
+		for (i in obj) {
+			if ((depth &gt; 1) &amp;&amp; (typeof obj[i] === &#039;object&#039;)) { 
+				// Recurse attributes that are objects
+				msg += WebUtil.dirObj(obj[i], depth-1, parent + &#039;.&#039; + i);
+			} else {
+				//val = new String(obj[i]).replace(&#039;\n&#039;, &#039; &#039;);
+				if (typeof(obj[i]) === &#039;undefined&#039;) {
+					val = &#039;undefined&#039;;
+				} else {
+					val = obj[i].toString().replace(&#039;\n&#039;, &#039; &#039;);
+				}
+				if (val.length &gt; 30) {
+					val = val.substr(0,30) + &#039;...&#039;;
+				} 
+				msg += parent + &#039;.&#039; + i + &#039;: &#039; + val + &#039;\n&#039;;
+			}
+		}
+		return msg;
+	};
+
+	// Read a query string variable
+	WebUtil.getQueryVar = function(name, defVal) {
+		var re = new RegExp(&#039;.*[?&amp;]&#039; + name + &#039;=([^&amp;#]*)&#039;),
+			match = document.location.href.match(re);
+		if (typeof defVal === &#039;undefined&#039;) { defVal = null; }
+		if (match) {
+			return decodeURIComponent(match[1]);
+		} else {
+			return defVal;
+		}
+	};
+
+
+	/*
+	 * Cookie handling. Dervied from: http://www.quirksmode.org/js/cookies.html
+	 */
+
+	// No days means only for this browser session
+	WebUtil.createCookie = function(name,value,days) {
+		var date, expires, secure;
+		if (days) {
+			date = new Date();
+			date.setTime(date.getTime()+(days*24*60*60*1000));
+			expires = &#039;; expires=&#039;+date.toGMTString();
+		} else {
+			expires = &#039;&#039;;
+		}
+		if (document.location.protocol === &#039;https:&#039;) {
+			secure = &#039;; secure&#039;;
+		} else {
+			secure = &#039;&#039;;
+		}
+		document.cookie = name+&#039;=&#039;+value+expires+&#039;; path=/&#039;+secure;
+	};
+
+	WebUtil.readCookie = function(name, defaultValue) {
+		var i, c, nameEQ = name + &#039;=&#039;, ca = document.cookie.split(&#039;;&#039;);
+		for(i=0; i &lt; ca.length; i += 1) {
+			c = ca[i];
+			while (c.charAt(0) === &#039; &#039;) { c = c.substring(1,c.length); }
+			if (c.indexOf(nameEQ) === 0) { return c.substring(nameEQ.length,c.length); }
+		}
+		return (typeof defaultValue !== &#039;undefined&#039;) ? defaultValue : null;
+	};
+
+	WebUtil.eraseCookie = function(name) {
+		WebUtil.createCookie(name,&#039;&#039;,-1);
+	};
+
+	/*
+	 * Setting handling.
+	 */
+
+	WebUtil.initSettings = function(callback) {
+		var callbackArgs = Array.prototype.slice.call(arguments, 1);
+		if (window.chrome &amp;&amp; window.chrome.storage) {
+			window.chrome.storage.sync.get(function (cfg) {
+				WebUtil.settings = cfg;
+				console.log(WebUtil.settings);
+				if (callback) {
+					callback.apply(this, callbackArgs);
+				}
+			});
+		} else {
+			// No-op
+			if (callback) {
+				callback.apply(this, callbackArgs);
+			}
+		}
+	};
+
+	// No days means only for this browser session
+	WebUtil.writeSetting = function(name, value) {
+		if (window.chrome &amp;&amp; window.chrome.storage) {
+			//console.log(&#039;writeSetting:&#039;, name, value);
+			if (WebUtil.settings[name] !== value) {
+				WebUtil.settings[name] = value;
+				window.chrome.storage.sync.set(WebUtil.settings);
+			}
+		} else {
+			localStorage.setItem(name, value);
+		}
+	};
+
+	WebUtil.readSetting = function(name, defaultValue) {
+		var value;
+		if (window.chrome &amp;&amp; window.chrome.storage) {
+			value = WebUtil.settings[name];
+		} else {
+			value = localStorage.getItem(name);
+		}
+		if (typeof value === &#039;undefined&#039;) {
+			value = null;
+		}
+		if (value === null &amp;&amp; typeof defaultValue !== undefined) {
+			return defaultValue;
+		} else {
+			return value;
+		}
+	};
+
+	WebUtil.eraseSetting = function(name) {
+		if (window.chrome &amp;&amp; window.chrome.storage) {
+			window.chrome.storage.sync.remove(name);
+			delete WebUtil.settings[name];
+		} else {
+			localStorage.removeItem(name);
+		}
+	};
+
+	/*
+	 * Alternate stylesheet selection
+	 */
+	WebUtil.getStylesheets = function() { var i, links, sheets = [];
+		links = document.getElementsByTagName(&#039;link&#039;);
+		for (i = 0; i &lt; links.length; i += 1) {
+			if (links[i].title &amp;&amp;
+				links[i].rel.toUpperCase().indexOf(&#039;STYLESHEET&#039;) &gt; -1) {
+				sheets.push(links[i]);
+			}
+		}
+		return sheets;
+	};
+
+	// No sheet means try and use value from cookie, null sheet used to
+	// clear all alternates.
+	WebUtil.selectStylesheet = function(sheet) {
+		var i, link, sheets = WebUtil.getStylesheets();
+		if (typeof sheet === &#039;undefined&#039;) {
+			sheet = &#039;default&#039;;
+		}
+		for (i=0; i &lt; sheets.length; i += 1) {
+			link = sheets[i];
+			if (link.title === sheet) {    
+				Util.Debug(&#039;Using stylesheet &#039; + sheet);
+				link.disabled = false;
+			} else {
+				//Util.Debug(&#039;Skipping stylesheet &#039; + link.title);
+				link.disabled = true;
+			}
+		}
+		return sheet;
+	};
+
+	return WebUtil;
+}]);</textarea>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="container">
+    <p>.</p>
+  </div>
+</footer>
+
+<script type="text/html" id="complexity-popover-template">
+  <div class="complexity-notice">
+    Complexity : {{ complexity.cyclomatic }} <br>
+    Length : {{ complexity.halstead.length }} <br>
+    Difficulty : {{ complexity.halstead.difficulty.toFixed(2) }} <br>
+    Est # bugs : {{ complexity.halstead.bugs.toFixed(2) }}<br>
+  </div>
+</script>
+
+<script type="text/javascript" src="../../assets/scripts/bundles/core-bundle.js"></script>
+<script type="text/javascript" src="../../assets/scripts/bundles/codemirror.js"></script>
+<script type="text/javascript" src="../../assets/scripts/codemirror.markpopovertext.js"></script>
+<script type="text/javascript" src="report.js"></script>
+<script type="text/javascript" src="report.history.js"></script>
+<script type="text/javascript" src="../../assets/scripts/plato-file.js"></script>
+</body>
+</html>
