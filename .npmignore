@@ -2,4 +2,6 @@
 plato
 node_modules
 bower_components
-dist
+lib
+screens
+gulpfile.js

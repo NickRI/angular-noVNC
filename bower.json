@@ -11,6 +11,8 @@
     "angular.js",
     "noVNC",
     "vnc",
+    "tightVNC",
+    "KVM",
     "RDP"
   ],
   "license": "MIT",
